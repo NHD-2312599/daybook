@@ -1,6 +1,6 @@
 # ĐL-T4 Dashboard
 
-Ứng dụng quản lý điểm danh tổ ĐL-T4 (Hội Thanh Niên)
+Ứng dụng quản lý điểm danh tổ ĐL-T4
 
 ## Tính năng
 - Điểm danh 4 mục: **Chép NLSS**, **Nghe Mana**, **Đi Chakki**, **Jondo**
