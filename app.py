@@ -14,7 +14,15 @@ app.config["JSON_AS_ASCII"] = False  # hỗ trợ tiếng Việt
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 DATA_FILE = os.path.join(DATA_DIR, "dl_t4_data.json")
-DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
+DATABASE_URL = (
+    os.environ.get("DATABASE_URL")
+    or os.environ.get("POSTGRES_URL")
+    or os.environ.get("STORAGE_POSTGRES_URL")
+    or os.environ.get("STORAGE_DATABASE_URL")
+    or os.environ.get("STORAGE_DATABASE_URL_UNPOOLED")
+    or os.environ.get("STORAGE_POSTGRES_URL_NON_POOLING")
+    or os.environ.get("POSTGRES_URL_NON_POOLING")
+)
 
 # ===== MEMBERS (cố định) =====
 MEMBERS = [

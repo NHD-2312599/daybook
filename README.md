@@ -29,14 +29,14 @@ Mở trình duyệt: **http://127.0.0.1:5000**
 ## Deploy lên Vercel
 
 1. Kết nối repository GitHub này với Vercel; Vercel tự nhận diện Flask từ `app.py` và cài thư viện trong `requirements.txt`.
-2. Trong Vercel Marketplace, tạo và kết nối một PostgreSQL database (ví dụ Neon) với project. Vercel thường tự thêm `DATABASE_URL`.
-3. Nếu nhà cung cấp không tự thêm biến, vào **Settings → Environment Variables** và thêm:
+2. Trong Vercel Marketplace, tạo và kết nối một PostgreSQL database (ví dụ Neon) với project. Code hỗ trợ các biến URL phổ biến của integration, kể cả biến có prefix `STORAGE_`.
+3. Nếu nhà cung cấp không tự thêm biến URL, vào **Settings → Environment Variables** và thêm:
    - **Key:** `DATABASE_URL`
    - **Value:** connection string PostgreSQL do nhà cung cấp cấp (giữ nguyên thông tin đăng nhập; không đưa vào GitHub)
    - **Environments:** Production và Preview
 4. Deploy lại sau khi kết nối database/biến môi trường.
 
-App dùng PostgreSQL khi có `DATABASE_URL` hoặc `POSTGRES_URL`; nếu không có thì dùng file JSON cho chạy local. Không cần khai báo `PORT`.
+App dùng PostgreSQL khi có URL như `DATABASE_URL`, `POSTGRES_URL`, `STORAGE_DATABASE_URL_UNPOOLED` hoặc `STORAGE_POSTGRES_URL_NON_POOLING`; nếu không có thì dùng file JSON cho chạy local. Không cần khai báo `PORT`.
 
 ## Cấu trúc
 ```
