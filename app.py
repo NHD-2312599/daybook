@@ -14,8 +14,7 @@ app.config["JSON_AS_ASCII"] = False  # hỗ trợ tiếng Việt
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 DATA_FILE = os.path.join(DATA_DIR, "dl_t4_data.json")
-
-os.makedirs(DATA_DIR, exist_ok=True)
+DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 
 # ===== MEMBERS (cố định) =====
 MEMBERS = [
@@ -31,6 +30,16 @@ MEMBERS = [
 
 
 def load_data():
+    if DATABASE_URL:
+        import psycopg
+
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                _ensure_database(cur)
+                cur.execute("SELECT payload FROM app_state WHERE id = 1")
+                row = cur.fetchone()
+                return row[0] if row else {}
+
     if not os.path.exists(DATA_FILE):
         return {}
     try:
@@ -41,8 +50,64 @@ def load_data():
 
 
 def save_data(data):
+    if DATABASE_URL:
+        import psycopg
+
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                _ensure_database(cur)
+                cur.execute(
+                    "UPDATE app_state SET payload = %s::jsonb, updated_at = NOW() WHERE id = 1",
+                    (json.dumps(data, ensure_ascii=False),),
+                )
+        return
+
+    os.makedirs(DATA_DIR, exist_ok=True)
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _ensure_database(cursor):
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS app_state ("
+        "id SMALLINT PRIMARY KEY CHECK (id = 1), "
+        "payload JSONB NOT NULL, "
+        "updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
+    )
+    # Import local JSON once when bootstrapping a fresh database, if present.
+    initial_data = {}
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                initial_data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            initial_data = {}
+    cursor.execute(
+        "INSERT INTO app_state (id, payload) VALUES (1, %s::jsonb) ON CONFLICT (id) DO NOTHING",
+        (json.dumps(initial_data, ensure_ascii=False),),
+    )
+
+
+def update_data(mutator):
+    """Apply a read-modify-write under a database row lock when using Postgres."""
+    if not DATABASE_URL:
+        data = load_data()
+        mutator(data)
+        save_data(data)
+        return
+
+    import psycopg
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            _ensure_database(cur)
+            cur.execute("SELECT payload FROM app_state WHERE id = 1 FOR UPDATE")
+            data = cur.fetchone()[0]
+            mutator(data)
+            cur.execute(
+                "UPDATE app_state SET payload = %s::jsonb, updated_at = NOW() WHERE id = 1",
+                (json.dumps(data, ensure_ascii=False),),
+            )
 
 
 # ===== ROUTES =====
@@ -87,11 +152,10 @@ def api_save_attendance():
     if atype not in ("nlss", "mana", "chakki", "jondo"):
         return jsonify({"ok": False, "error": "type không hợp lệ"}), 400
 
-    data = load_data()
-    if date not in data:
-        data[date] = {}
-    data[date][atype] = records
-    save_data(data)
+    def update(data):
+        data.setdefault(date, {})[atype] = records
+
+    update_data(update)
     return jsonify({"ok": True, "message": f"Đã lưu {atype.upper()} ngày {date}"})
 
 
@@ -103,13 +167,14 @@ def api_finalize_day():
     if not date:
         return jsonify({"ok": False, "error": "Thiếu date"}), 400
 
-    data = load_data()
-    day = data.setdefault(date, {})
-    day["_official_attendance"] = {
-        t: day.get(t, {}) for t in ("nlss", "mana", "chakki", "jondo")
-    }
-    day["_finalized_at"] = datetime.now().isoformat(timespec="seconds")
-    save_data(data)
+    def update(data):
+        day = data.setdefault(date, {})
+        day["_official_attendance"] = {
+            t: day.get(t, {}) for t in ("nlss", "mana", "chakki", "jondo")
+        }
+        day["_finalized_at"] = datetime.now().isoformat(timespec="seconds")
+
+    update_data(update)
     return jsonify({"ok": True, "message": f"Đã chốt kết quả chính thức ngày {date}"})
 
 
@@ -129,15 +194,14 @@ def api_save_reflection():
     if not date:
         return jsonify({"ok": False, "error": "Thiếu date"}), 400
 
-    data = load_data()
-    if date not in data:
-        data[date] = {}
-    data[date]["reflection"] = {
-        "topic": payload.get("topic", ""),
-        "leader_note": payload.get("leader_note", ""),
-        "notes": payload.get("notes", {}),
-    }
-    save_data(data)
+    def update(data):
+        data.setdefault(date, {})["reflection"] = {
+            "topic": payload.get("topic", ""),
+            "leader_note": payload.get("leader_note", ""),
+            "notes": payload.get("notes", {}),
+        }
+
+    update_data(update)
     return jsonify({"ok": True, "message": "Đã lưu suy ngẫm"})
 
 
@@ -149,11 +213,10 @@ def api_save_weekly():
     if not week_key:
         return jsonify({"ok": False, "error": "Thiếu week_key"}), 400
 
-    data = load_data()
-    if "weekly_reports" not in data:
-        data["weekly_reports"] = {}
-    data["weekly_reports"][week_key] = payload
-    save_data(data)
+    def update(data):
+        data.setdefault("weekly_reports", {})[week_key] = payload
+
+    update_data(update)
     return jsonify({"ok": True, "message": "Đã lưu báo cáo tuần"})
 
 
@@ -247,7 +310,10 @@ def api_history():
 @app.route("/api/clear", methods=["POST"])
 def api_clear():
     """Xóa toàn bộ dữ liệu (cẩn thận!)"""
-    save_data({})
+    def clear(data):
+        data.clear()
+
+    update_data(clear)
     return jsonify({"ok": True, "message": "Đã xóa toàn bộ dữ liệu"})
 
 
