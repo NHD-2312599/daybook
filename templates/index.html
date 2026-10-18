@@ -744,7 +744,8 @@
             <p class="subtitle">Mỗi người nhập giờ bắt đầu và kết thúc có thể gặp theo từng ngày; hệ thống tìm các khoảng giờ trùng nhau.</p>
           </div>
           <div class="topbar-actions">
-            <button class="btn btn-soft" onclick="copyAvailabilityTemplate()">📋 Copy mẫu điền</button>
+            <button class="btn btn-soft" onclick="copyAvailabilityTemplate()">📋 Copy mẫu trống</button>
+            <button class="btn btn-soft" onclick="copyFilledAvailability()">🕒 Copy lịch đã chọn</button>
             <button class="btn btn-mint" onclick="exportAvailabilityImage()">🖼️ Lưu ảnh tổng hợp</button>
             <button class="btn btn-soft" onclick="loadAvailability()">↻ Cập nhật tổng hợp</button>
           </div>
@@ -1309,9 +1310,59 @@
       const template = buildAvailabilityTemplate();
       try {
         await navigator.clipboard.writeText(template);
-        showToast("📋 Đã copy mẫu lịch rảnh");
+        showToast("📋 Đã copy mẫu trống lịch rảnh");
       } catch {
         prompt("Copy mẫu này để gửi cho anh em:", template);
+      }
+    }
+
+    function buildFilledAvailability() {
+      const member = document.getElementById("availability-member");
+      const memberName = member.options[member.selectedIndex]?.text || "";
+      if (!member.value) {
+        showToast("⚠️ Hãy chọn tên trước khi copy lịch");
+        return "";
+      }
+      const lines = [
+        "📅 LỊCH RẢNH ĐL-T4",
+        `Tuần bắt đầu (Thứ Hai): ${formatDateVN(availabilityWeekKey())}`,
+        "",
+        "“Vì nơi nào có hai ba người nhân danh ta nhóm nhau lại, thì ta ở giữa họ.”",
+        "— Ma-thi-ơ 18:20 · Kinh Thánh Tiếng Việt 1925",
+        "",
+        "Anh em mình cùng sắp xếp khung giờ phù hợp để được thông công, khích lệ và đồng hành với nhau nhé!",
+        "",
+        `Tên: ${memberName}`,
+        "",
+      ];
+      let hasInterval = false;
+      AVAILABILITY_DAYS.forEach((day, index) => {
+        const row = document.querySelector(`.availability-day-row[data-day="${index + 1}"]`);
+        const intervals = [...row.querySelectorAll(".availability-interval")]
+          .map(interval => ({
+            start: interval.querySelector(".availability-start").value,
+            end: interval.querySelector(".availability-end").value,
+          }))
+          .filter(interval => interval.start && interval.end);
+        if (!intervals.length) return;
+        hasInterval = true;
+        lines.push(`${day}: ${intervals.map(interval => `${interval.start} đến ${interval.end}`).join(", ")}`);
+      });
+      if (!hasInterval) {
+        showToast("⚠️ Chưa có khung giờ nào để copy");
+        return "";
+      }
+      return lines.join("\n");
+    }
+
+    async function copyFilledAvailability() {
+      const message = buildFilledAvailability();
+      if (!message) return;
+      try {
+        await navigator.clipboard.writeText(message);
+        showToast("🕒 Đã copy lịch rảnh đã chọn");
+      } catch {
+        prompt("Copy lịch đã chọn để gửi cho anh em:", message);
       }
     }
 
