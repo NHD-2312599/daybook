@@ -687,6 +687,7 @@
           </div>
           <div class="topbar-actions">
             <button class="btn btn-soft" onclick="loadWeeklyStats()">📊 Tải thống kê</button>
+            <button class="btn btn-mint" onclick="exportWeeklyStatsImage()">🖼️ Lưu ảnh thống kê</button>
             <button class="btn btn-dark" onclick="exportWeekly()">Xuất báo cáo</button>
           </div>
         </div>
@@ -699,8 +700,9 @@
                 <input type="date" id="week-to" class="form-control" style="max-width:180px;border-radius:50px" />
               </div>
             </div>
-            <div class="report-section">
+            <div id="weekly-stats-capture" class="report-section">
               <h4>1. Tham gia hoạt động</h4>
+              <p id="weekly-stats-image-range" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></p>
               <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Mana → NLSS → Chakki → Jondo</p>
               <div id="weekly-participation"><p style="color:var(--text-muted);font-size:13px">Bấm “Tải thống kê” để xem số liệu</p></div>
             </div>
@@ -1098,7 +1100,7 @@
     async function loadWeeklyStats() {
       const from = document.getElementById("week-from").value;
       const to = document.getElementById("week-to").value;
-      if (!from || !to) { showToast("⚠️ Chọn khoảng ngày trước"); return; }
+      if (!from || !to) { showToast("⚠️ Chọn khoảng ngày trước"); return false; }
       const res = await api(`/api/stats?from=${from}&to=${to}`);
       const stats = res.stats || {};
       const totalDays = res.total_days || 0;
@@ -1115,7 +1117,28 @@
           </div>`;
       });
       document.getElementById("weekly-participation").innerHTML = html;
+      document.getElementById("weekly-stats-image-range").textContent = `Thời gian: ${formatDateVN(from)} – ${formatDateVN(to)}`;
       showToast("✅ Đã tải thống kê tuần");
+      return true;
+    }
+
+    async function exportWeeklyStatsImage() {
+      if (!await loadWeeklyStats()) return;
+      try {
+        const canvas = await html2canvas(document.getElementById("weekly-stats-capture"), {
+          backgroundColor: "#faf6f0", scale: 2, useCORS: true, logging: false,
+        });
+        const from = document.getElementById("week-from").value;
+        const to = document.getElementById("week-to").value;
+        const link = document.createElement("a");
+        link.download = `DL-T4_Thong-ke-tuan_${from}_${to}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showToast("✅ Đã lưu ảnh thống kê tuần!");
+      } catch (error) {
+        console.error(error);
+        showToast("❌ Không tạo được ảnh thống kê");
+      }
     }
 
     const AVAILABILITY_DAYS = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
