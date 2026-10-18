@@ -796,12 +796,19 @@
             <p class="subtitle">Xem lại dữ liệu đã lưu</p>
           </div>
           <div class="topbar-actions">
+            <button class="btn btn-mint" onclick="exportHistoryImage()">🖼️ Lưu ảnh</button>
             <button class="btn btn-soft" onclick="clearAllData()">🗑️ Xóa toàn bộ</button>
           </div>
         </div>
-        <div class="card">
-          <div class="card-body" id="history-content">
-            <div class="empty-state">Đang tải...</div>
+        <div id="history-capture" style="background:var(--bg-main);padding:8px;border-radius:16px">
+          <div style="padding:12px 14px 18px">
+            <h2 style="font-size:22px;margin-bottom:4px">Lịch sử ĐL-T4</h2>
+            <p id="history-image-date" style="font-size:12px;color:var(--text-muted)"></p>
+          </div>
+          <div class="card">
+            <div class="card-body" id="history-content">
+              <div class="empty-state">Đang tải...</div>
+            </div>
           </div>
         </div>
       </section>
@@ -1336,6 +1343,25 @@
         html += `</div>`;
       });
       document.getElementById("history-content").innerHTML = html;
+    }
+
+    async function exportHistoryImage() {
+      showToast("⏳ Đang tạo ảnh lịch sử...");
+      await renderHistory();
+      document.getElementById("history-image-date").textContent = `Cập nhật ngày ${formatDateVN(todayStr())}`;
+      try {
+        const canvas = await html2canvas(document.getElementById("history-capture"), {
+          backgroundColor: "#faf8f5", scale: 2, useCORS: true, logging: false,
+        });
+        const link = document.createElement("a");
+        link.download = `DL-T4_Lich-su_${todayStr()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showToast("✅ Đã lưu ảnh lịch sử!");
+      } catch (error) {
+        console.error(error);
+        showToast("❌ Không tạo được ảnh lịch sử");
+      }
     }
 
     async function clearAllData() {
