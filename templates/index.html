@@ -441,11 +441,16 @@
       color: var(--primary);
     }
 
-    .availability-grid { display: grid; grid-template-columns: 110px repeat(3, minmax(80px, 1fr)); gap: 8px; align-items: stretch; }
-    .availability-head, .availability-day { padding: 10px 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
-    .availability-day { color: var(--text); display: flex; align-items: center; }
-    .availability-cell { min-height: 48px; display: flex; align-items: center; justify-content: center; background: var(--cream); border-radius: 12px; }
-    .availability-cell input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+    .availability-grid { display: flex; flex-direction: column; gap: 10px; }
+    .availability-day-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .availability-day { font-size: 13px; font-weight: 600; padding-top: 10px; }
+    .availability-interval-list { display: flex; flex-direction: column; gap: 8px; }
+    .availability-interval { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .availability-interval input { width: 130px; }
+    .availability-interval span { color: var(--text-muted); font-size: 12px; }
+    .availability-add, .availability-remove { border: 1px solid var(--border); background: white; border-radius: 10px; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 12px; }
+    .availability-add { color: var(--primary); align-self: flex-start; }
+    .availability-remove { color: #a34d58; }
     .availability-result { padding: 14px 16px; margin-bottom: 10px; border-radius: 14px; background: var(--cream); }
     .availability-result.best { background: var(--mint); }
     .availability-result strong { font-size: 14px; }
@@ -498,9 +503,9 @@
       .main { padding: 20px 16px; }
       .stats-row { grid-template-columns: 1fr 1fr; }
       .topbar h1 { font-size: 24px; }
-      .availability-grid { grid-template-columns: 78px repeat(3, minmax(48px, 1fr)); gap: 5px; }
-      .availability-head, .availability-day { padding: 8px 4px; font-size: 11px; }
-      .availability-cell { min-height: 42px; }
+      .availability-day-row { grid-template-columns: 1fr; gap: 4px; }
+      .availability-day { padding-top: 0; }
+      .availability-interval input { width: 115px; }
     }
   </style>
 </head>
@@ -731,7 +736,7 @@
         <div class="topbar">
           <div>
             <h1>Lịch rảnh trong tuần</h1>
-            <p class="subtitle">Mỗi người tick các khung giờ có thể gặp; hệ thống tìm thời điểm nhiều anh em cùng rảnh.</p>
+            <p class="subtitle">Mỗi người nhập giờ bắt đầu và kết thúc có thể gặp theo từng ngày; hệ thống tìm các khoảng giờ trùng nhau.</p>
           </div>
           <div class="topbar-actions">
             <button class="btn btn-soft" onclick="loadAvailability()">↻ Cập nhật tổng hợp</button>
@@ -746,17 +751,17 @@
               </div>
               <div class="form-group" style="margin:0">
                 <label for="availability-week">Tuần bắt đầu (Thứ Hai)</label>
-                <input type="date" id="availability-week" class="form-control" onchange="loadAvailability()" />
+                <input type="date" id="availability-week" class="form-control" onchange="normalizeAvailabilityWeek()" />
               </div>
               <button class="btn btn-dark" onclick="submitAvailability()">✓ Gửi lịch rảnh</button>
             </div>
-            <div class="note-box">Chọn mọi khung giờ bạn có thể tham gia. Có thể cập nhật lịch bất cứ lúc nào trong tuần.</div>
+            <div class="note-box">Nhập từng khoảng giờ bạn có thể tham gia, ví dụ 18:00 đến 20:00. Dùng “+ Thêm khung giờ” nếu một ngày có nhiều khoảng rảnh.</div>
             <div id="availability-grid" class="availability-grid"></div>
             <div id="availability-status" class="subtitle" style="margin-top:12px"></div>
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><h3>🤝 Khung giờ có thể gặp</h3></div>
+          <div class="card-header"><h3>🤝 Các khoảng giờ trùng nhau</h3></div>
           <div class="card-body" id="availability-results"><div class="empty-state">Đang tải lịch rảnh…</div></div>
         </div>
       </section>
@@ -1085,35 +1090,62 @@
     }
 
     const AVAILABILITY_DAYS = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
-    const AVAILABILITY_PERIODS = [
-      { id: "morning", label: "Sáng" },
-      { id: "afternoon", label: "Chiều" },
-      { id: "evening", label: "Tối" },
-    ];
-    const AVAILABILITY_PERIOD_LABEL = Object.fromEntries(AVAILABILITY_PERIODS.map(p => [p.id, p.label]));
-
     function availabilityWeekKey() {
       const input = document.getElementById("availability-week");
       return input.value || todayStr();
     }
 
-    function renderAvailabilityGrid(selected = []) {
-      let html = `<div></div>${AVAILABILITY_PERIODS.map(p => `<div class="availability-head">${p.label}</div>`).join("")}`;
-      AVAILABILITY_DAYS.forEach((day, idx) => {
-        html += `<div class="availability-day">${day}</div>`;
-        AVAILABILITY_PERIODS.forEach(period => {
-          const slot = `${idx + 1}-${period.id}`;
-          html += `<label class="availability-cell" title="${day} · ${period.label}"><input type="checkbox" class="availability-slot" value="${slot}" ${selected.includes(slot) ? "checked" : ""} aria-label="${day} ${period.label}" /></label>`;
-        });
-      });
-      document.getElementById("availability-grid").innerHTML = html;
+    function normalizeAvailabilityWeek() {
+      const input = document.getElementById("availability-week");
+      if (input.value) {
+        const date = new Date(`${input.value}T12:00:00`);
+        date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+        input.value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+      loadAvailability();
+    }
+
+    function renderAvailabilityGrid(intervals = []) {
+      const rows = AVAILABILITY_DAYS.map((day, idx) => {
+        const dayNumber = idx + 1;
+        const dayIntervals = intervals.filter(interval => interval.day === dayNumber);
+        const entries = dayIntervals.length ? dayIntervals : [{ start: "", end: "" }];
+        return `<div class="availability-day-row" data-day="${dayNumber}">
+          <div class="availability-day">${day}</div>
+          <div class="availability-interval-list">
+            ${entries.map(interval => `<div class="availability-interval">
+              <input type="time" class="form-control availability-start" value="${interval.start || ""}" aria-label="${day} giờ bắt đầu" />
+              <span>đến</span>
+              <input type="time" class="form-control availability-end" value="${interval.end || ""}" aria-label="${day} giờ kết thúc" />
+              <button type="button" class="availability-remove" onclick="removeAvailabilityInterval(this)" title="Xóa khoảng giờ">Xóa</button>
+            </div>`).join("")}
+            <button type="button" class="availability-add" onclick="addAvailabilityInterval(this)">＋ Thêm khung giờ</button>
+          </div>
+        </div>`;
+      }).join("");
+      document.getElementById("availability-grid").innerHTML = rows;
+    }
+
+    function addAvailabilityInterval(button) {
+      const list = button.parentElement;
+      const row = document.createElement("div");
+      row.className = "availability-interval";
+      const day = AVAILABILITY_DAYS[Number(button.closest(".availability-day-row").dataset.day) - 1];
+      row.innerHTML = `<input type="time" class="form-control availability-start" aria-label="${day} giờ bắt đầu" /><span>đến</span><input type="time" class="form-control availability-end" aria-label="${day} giờ kết thúc" /><button type="button" class="availability-remove" onclick="removeAvailabilityInterval(this)" title="Xóa khoảng giờ">Xóa</button>`;
+      list.insertBefore(row, button);
+    }
+
+    function removeAvailabilityInterval(button) {
+      const row = button.closest(".availability-day-row");
+      button.closest(".availability-interval").remove();
+      if (!row.querySelector(".availability-interval")) addAvailabilityInterval(row.querySelector(".availability-add"));
     }
 
     async function loadMyAvailability() {
       const memberId = document.getElementById("availability-member").value;
       const schedules = await api(`/api/availability?week_key=${availabilityWeekKey()}`);
       const saved = schedules[memberId];
-      renderAvailabilityGrid(saved?.slots || []);
+      renderAvailabilityGrid(saved?.intervals || []);
       document.getElementById("availability-status").textContent = saved?.updated_at
         ? `Lịch của bạn đã gửi · cập nhật ${saved.updated_at.replace("T", " ")}` : "Bạn chưa gửi lịch cho tuần này";
     }
@@ -1122,19 +1154,33 @@
       const schedules = await api(`/api/availability?week_key=${availabilityWeekKey()}`);
       const currentId = document.getElementById("availability-member").value;
       const saved = schedules[currentId];
-      renderAvailabilityGrid(saved?.slots || []);
+      renderAvailabilityGrid(saved?.intervals || []);
       document.getElementById("availability-status").textContent = saved?.updated_at
         ? `Lịch của bạn đã gửi · cập nhật ${saved.updated_at.replace("T", " ")}` : "Bạn chưa gửi lịch cho tuần này";
 
-      const counts = {};
-      Object.entries(schedules).forEach(([memberId, entry]) => {
-        (entry.slots || []).forEach(slot => {
-          if (!counts[slot]) counts[slot] = [];
+      const segments = [];
+      for (let day = 1; day <= 7; day++) {
+        const intervals = [];
+        Object.entries(schedules).forEach(([memberId, entry]) => {
           const member = MEMBERS.find(m => String(m.id) === String(memberId));
-          if (member) counts[slot].push(member.name);
+          if (!member) return;
+          (entry.intervals || []).filter(interval => interval.day === day).forEach(interval => {
+            intervals.push({ memberId, name: member.name, start: interval.start, end: interval.end });
+          });
         });
-      });
-      const results = Object.entries(counts).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+        const points = [...new Set(intervals.flatMap(interval => [interval.start, interval.end]))].sort();
+        const daySegments = [];
+        for (let i = 0; i < points.length - 1; i++) {
+          const start = points[i], end = points[i + 1];
+          const names = [...new Set(intervals.filter(interval => interval.start <= start && interval.end >= end).map(interval => interval.name))];
+          if (!names.length) continue;
+          const previous = daySegments[daySegments.length - 1];
+          if (previous && previous.end === start && previous.names.join("|") === names.join("|")) previous.end = end;
+          else daySegments.push({ day, start, end, names });
+        }
+        segments.push(...daySegments);
+      }
+      const results = segments.sort((a, b) => b.names.length - a.names.length || a.day - b.day || a.start.localeCompare(b.start));
       const submittedCount = Object.keys(schedules).length;
       const container = document.getElementById("availability-results");
       if (!submittedCount) {
@@ -1145,22 +1191,38 @@
         container.innerHTML = `<div class="empty-state">${submittedCount} người đã gửi nhưng chưa chọn khung giờ nào.</div>`;
         return;
       }
-      const bestCount = results[0][1].length;
-      const top = results.filter(([, names]) => names.length === bestCount);
-      container.innerHTML = `<p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Đã nhận lịch của ${submittedCount}/${MEMBERS.length} thành viên · Xếp theo số người có thể tham gia</p>` +
-        results.map(([slot, names]) => {
-          const [day, period] = slot.split("-");
-          const title = `${AVAILABILITY_DAYS[Number(day) - 1]} · ${AVAILABILITY_PERIOD_LABEL[period]}`;
+      const bestCount = results[0].names.length;
+      container.innerHTML = `<p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Đã nhận lịch của ${submittedCount}/${MEMBERS.length} thành viên · Xếp theo số người cùng rảnh</p>` +
+        results.map(({ day, start, end, names }) => {
+          const title = `${AVAILABILITY_DAYS[day - 1]} · ${start}–${end}`;
           return `<div class="availability-result ${names.length === bestCount ? "best" : ""}"><strong>${names.length === bestCount ? "⭐ " : ""}${title} — ${names.length}/${MEMBERS.length} người</strong><p>${names.join(" · ")}</p></div>`;
         }).join("");
     }
 
     async function submitAvailability() {
       const memberId = document.getElementById("availability-member").value;
-      const slots = [...document.querySelectorAll(".availability-slot:checked")].map(input => input.value);
+      const intervals = [];
+      let invalid = false;
+      document.querySelectorAll(".availability-day-row").forEach(row => {
+        row.querySelectorAll(".availability-interval").forEach(interval => {
+          const start = interval.querySelector(".availability-start").value;
+          const end = interval.querySelector(".availability-end").value;
+          if (!start && !end) return;
+          if (!start || !end || start >= end) {
+            invalid = true;
+            interval.querySelector(!start || (end && start >= end) ? ".availability-start" : ".availability-end").focus();
+            return;
+          }
+          intervals.push({ day: Number(row.dataset.day), start, end });
+        });
+      });
+      if (invalid) {
+        showToast("⚠️ Mỗi khung giờ cần giờ bắt đầu nhỏ hơn giờ kết thúc");
+        return;
+      }
       const res = await api("/api/availability", {
         method: "POST",
-        body: JSON.stringify({ week_key: availabilityWeekKey(), member_id: memberId, slots }),
+        body: JSON.stringify({ week_key: availabilityWeekKey(), member_id: memberId, intervals }),
       });
       if (res.ok) {
         showToast("✅ Đã gửi lịch rảnh");

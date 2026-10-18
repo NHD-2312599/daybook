@@ -241,22 +241,36 @@ def api_availability():
     payload = request.get_json(force=True)
     week_key = payload.get("week_key", "")
     member_id = str(payload.get("member_id", ""))
-    slots = payload.get("slots", [])
+    intervals = payload.get("intervals", [])
     valid_ids = {str(member["id"]) for member in MEMBERS}
     if not week_key or len(week_key) != 10:
         return jsonify({"ok": False, "error": "week_key không hợp lệ"}), 400
     if member_id not in valid_ids:
         return jsonify({"ok": False, "error": "Thành viên không hợp lệ"}), 400
-    valid_slots = {f"{day}-{period}" for day in range(1, 8) for period in ("morning", "afternoon", "evening")}
-    if not isinstance(slots, list) or any(
-        not isinstance(slot, str) or slot not in valid_slots for slot in slots
-    ):
+    if not isinstance(intervals, list) or len(intervals) > 84:
         return jsonify({"ok": False, "error": "Danh sách khung giờ không hợp lệ"}), 400
+    normalized_intervals = []
+    for interval in intervals:
+        if not isinstance(interval, dict):
+            return jsonify({"ok": False, "error": "Khung giờ không hợp lệ"}), 400
+        day = interval.get("day")
+        start = interval.get("start", "")
+        end = interval.get("end", "")
+        if (not isinstance(day, int) or day < 1 or day > 7
+                or not isinstance(start, str) or not isinstance(end, str)
+                or len(start) != 5 or len(end) != 5 or start >= end):
+            return jsonify({"ok": False, "error": "Giờ bắt đầu/kết thúc không hợp lệ"}), 400
+        try:
+            datetime.strptime(start, "%H:%M")
+            datetime.strptime(end, "%H:%M")
+        except ValueError:
+            return jsonify({"ok": False, "error": "Giờ phải theo định dạng HH:MM"}), 400
+        normalized_intervals.append({"day": day, "start": start, "end": end})
 
     def update(data):
         week = data.setdefault("availability_weeks", {}).setdefault(week_key, {})
         week[member_id] = {
-            "slots": sorted(set(slots)),
+            "intervals": normalized_intervals,
             "updated_at": datetime.now().isoformat(timespec="seconds"),
         }
 
