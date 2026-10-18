@@ -739,6 +739,8 @@
             <p class="subtitle">Mỗi người nhập giờ bắt đầu và kết thúc có thể gặp theo từng ngày; hệ thống tìm các khoảng giờ trùng nhau.</p>
           </div>
           <div class="topbar-actions">
+            <button class="btn btn-soft" onclick="copyAvailabilityTemplate()">📋 Copy mẫu điền</button>
+            <button class="btn btn-mint" onclick="exportAvailabilityImage()">🖼️ Lưu ảnh tổng hợp</button>
             <button class="btn btn-soft" onclick="loadAvailability()">↻ Cập nhật tổng hợp</button>
           </div>
         </div>
@@ -760,9 +762,14 @@
             <div id="availability-status" class="subtitle" style="margin-top:12px"></div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header"><h3>🤝 Các khoảng giờ trùng nhau</h3></div>
-          <div class="card-body" id="availability-results"><div class="empty-state">Đang tải lịch rảnh…</div></div>
+        <div id="availability-capture" style="background:var(--bg-main);padding:8px;border-radius:16px">
+          <div class="card">
+            <div class="card-header" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+              <h3>🤝 Tổng hợp lịch rảnh tuần</h3>
+              <span id="availability-image-week" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+            <div class="card-body" id="availability-results"><div class="empty-state">Đang tải lịch rảnh…</div></div>
+          </div>
         </div>
       </section>
 
@@ -1151,6 +1158,7 @@
     }
 
     async function loadAvailability() {
+      document.getElementById("availability-image-week").textContent = `Tuần bắt đầu ${formatDateVN(availabilityWeekKey())}`;
       const schedules = await api(`/api/availability?week_key=${availabilityWeekKey()}`);
       const currentId = document.getElementById("availability-member").value;
       const saved = schedules[currentId];
@@ -1228,6 +1236,50 @@
         showToast("✅ Đã gửi lịch rảnh");
         await loadAvailability();
       } else showToast("❌ " + (res.error || "Không lưu được lịch"));
+    }
+
+    function buildAvailabilityTemplate() {
+      const lines = [
+        "📅 LỊCH RẢNH ĐL-T4",
+        `Tuần bắt đầu (Thứ Hai): ${formatDateVN(availabilityWeekKey())}`,
+        "Tên:",
+        "",
+      ];
+      AVAILABILITY_DAYS.forEach(day => {
+        lines.push(`${day}:`);
+        lines.push("- __:__ đến __:__");
+        lines.push("- (nếu có thêm khung giờ, ghi thêm một dòng; nếu bận cả ngày, ghi ‘Bận cả ngày’)");
+        lines.push("");
+      });
+      return lines.join("\n");
+    }
+
+    async function copyAvailabilityTemplate() {
+      const template = buildAvailabilityTemplate();
+      try {
+        await navigator.clipboard.writeText(template);
+        showToast("📋 Đã copy mẫu lịch rảnh");
+      } catch {
+        prompt("Copy mẫu này để gửi cho anh em:", template);
+      }
+    }
+
+    async function exportAvailabilityImage() {
+      showToast("⏳ Đang tạo ảnh tổng hợp...");
+      await loadAvailability();
+      try {
+        const canvas = await html2canvas(document.getElementById("availability-capture"), {
+          backgroundColor: "#faf8f5", scale: 2, useCORS: true, logging: false,
+        });
+        const link = document.createElement("a");
+        link.download = `DL-T4_Lich-ranh_${availabilityWeekKey()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showToast("✅ Đã lưu ảnh tổng hợp lịch rảnh!");
+      } catch (error) {
+        console.error(error);
+        showToast("❌ Không tạo được ảnh tổng hợp");
+      }
     }
 
     function exportWeekly() {
