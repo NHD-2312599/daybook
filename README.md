@@ -8,6 +8,7 @@
 - Cột ghi chú lý do chưa làm
 - Suy ngẫm Kinh thánh (copy gửi GYJN)
 - Báo cáo tuần của Leader
+- Tổng hợp lịch rảnh theo tuần: mỗi thành viên tick ngày/khung giờ có thể gặp, hệ thống xếp hạng giờ trùng nhau
 - Thống kê tổng quan + xuất ảnh PNG
 - Lưu JSON cục bộ khi chạy local hoặc PostgreSQL khi deploy
 

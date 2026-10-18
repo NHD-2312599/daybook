@@ -228,6 +228,42 @@ def api_save_weekly():
     return jsonify({"ok": True, "message": "Đã lưu báo cáo tuần"})
 
 
+@app.route("/api/availability", methods=["GET", "POST"])
+def api_availability():
+    """Đọc hoặc lưu lịch rảnh theo tuần cho từng thành viên."""
+    if request.method == "GET":
+        week_key = request.args.get("week_key", "")
+        if not week_key:
+            return jsonify({"ok": False, "error": "Thiếu week_key"}), 400
+        data = load_data()
+        return jsonify(data.get("availability_weeks", {}).get(week_key, {}))
+
+    payload = request.get_json(force=True)
+    week_key = payload.get("week_key", "")
+    member_id = str(payload.get("member_id", ""))
+    slots = payload.get("slots", [])
+    valid_ids = {str(member["id"]) for member in MEMBERS}
+    if not week_key or len(week_key) != 10:
+        return jsonify({"ok": False, "error": "week_key không hợp lệ"}), 400
+    if member_id not in valid_ids:
+        return jsonify({"ok": False, "error": "Thành viên không hợp lệ"}), 400
+    valid_slots = {f"{day}-{period}" for day in range(1, 8) for period in ("morning", "afternoon", "evening")}
+    if not isinstance(slots, list) or any(
+        not isinstance(slot, str) or slot not in valid_slots for slot in slots
+    ):
+        return jsonify({"ok": False, "error": "Danh sách khung giờ không hợp lệ"}), 400
+
+    def update(data):
+        week = data.setdefault("availability_weeks", {}).setdefault(week_key, {})
+        week[member_id] = {
+            "slots": sorted(set(slots)),
+            "updated_at": datetime.now().isoformat(timespec="seconds"),
+        }
+
+    update_data(update)
+    return jsonify({"ok": True, "message": "Đã gửi lịch rảnh"})
+
+
 @app.route("/api/stats")
 def api_stats():
     """Thống kê theo ngày hoặc khoảng ngày"""

@@ -441,6 +441,16 @@
       color: var(--primary);
     }
 
+    .availability-grid { display: grid; grid-template-columns: 110px repeat(3, minmax(80px, 1fr)); gap: 8px; align-items: stretch; }
+    .availability-head, .availability-day { padding: 10px 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .availability-day { color: var(--text); display: flex; align-items: center; }
+    .availability-cell { min-height: 48px; display: flex; align-items: center; justify-content: center; background: var(--cream); border-radius: 12px; }
+    .availability-cell input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+    .availability-result { padding: 14px 16px; margin-bottom: 10px; border-radius: 14px; background: var(--cream); }
+    .availability-result.best { background: var(--mint); }
+    .availability-result strong { font-size: 14px; }
+    .availability-result p { margin-top: 5px; font-size: 12px; color: var(--text-muted); }
+
     .empty-state {
       text-align: center;
       padding: 36px 20px;
@@ -488,6 +498,9 @@
       .main { padding: 20px 16px; }
       .stats-row { grid-template-columns: 1fr 1fr; }
       .topbar h1 { font-size: 24px; }
+      .availability-grid { grid-template-columns: 78px repeat(3, minmax(48px, 1fr)); gap: 5px; }
+      .availability-head, .availability-day { padding: 8px 4px; font-size: 11px; }
+      .availability-cell { min-height: 42px; }
     }
   </style>
 </head>
@@ -516,6 +529,9 @@
       </button>
       <button class="nav-icon" data-section="weekly" title="Báo cáo tuần">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </button>
+      <button class="nav-icon" data-section="availability" title="Lịch rảnh">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zm3 10h2m4 0h2m-8 4h2m4 0h2"/></svg>
       </button>
       <button class="nav-icon" data-section="history" title="Lịch sử">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -711,6 +727,41 @@
       </section>
 
       <!-- HISTORY -->
+      <section id="availability" class="section">
+        <div class="topbar">
+          <div>
+            <h1>Lịch rảnh trong tuần</h1>
+            <p class="subtitle">Mỗi người tick các khung giờ có thể gặp; hệ thống tìm thời điểm nhiều anh em cùng rảnh.</p>
+          </div>
+          <div class="topbar-actions">
+            <button class="btn btn-soft" onclick="loadAvailability()">↻ Cập nhật tổng hợp</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-body">
+            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:end;margin-bottom:18px">
+              <div class="form-group" style="margin:0;min-width:220px">
+                <label for="availability-member">Tên của bạn</label>
+                <select id="availability-member" class="form-control" onchange="loadMyAvailability()"></select>
+              </div>
+              <div class="form-group" style="margin:0">
+                <label for="availability-week">Tuần bắt đầu (Thứ Hai)</label>
+                <input type="date" id="availability-week" class="form-control" onchange="loadAvailability()" />
+              </div>
+              <button class="btn btn-dark" onclick="submitAvailability()">✓ Gửi lịch rảnh</button>
+            </div>
+            <div class="note-box">Chọn mọi khung giờ bạn có thể tham gia. Có thể cập nhật lịch bất cứ lúc nào trong tuần.</div>
+            <div id="availability-grid" class="availability-grid"></div>
+            <div id="availability-status" class="subtitle" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>🤝 Khung giờ có thể gặp</h3></div>
+          <div class="card-body" id="availability-results"><div class="empty-state">Đang tải lịch rảnh…</div></div>
+        </div>
+      </section>
+
+      <!-- HISTORY -->
       <section id="history" class="section">
         <div class="topbar">
           <div>
@@ -766,6 +817,7 @@
         document.getElementById(item.dataset.section).classList.add("active");
         if (item.dataset.section === "dashboard") renderDashboard();
         if (item.dataset.section === "history") renderHistory();
+        if (item.dataset.section === "availability") loadAvailability();
       });
     });
 
@@ -1032,6 +1084,90 @@
       showToast("✅ Đã tải thống kê tuần");
     }
 
+    const AVAILABILITY_DAYS = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+    const AVAILABILITY_PERIODS = [
+      { id: "morning", label: "Sáng" },
+      { id: "afternoon", label: "Chiều" },
+      { id: "evening", label: "Tối" },
+    ];
+    const AVAILABILITY_PERIOD_LABEL = Object.fromEntries(AVAILABILITY_PERIODS.map(p => [p.id, p.label]));
+
+    function availabilityWeekKey() {
+      const input = document.getElementById("availability-week");
+      return input.value || todayStr();
+    }
+
+    function renderAvailabilityGrid(selected = []) {
+      let html = `<div></div>${AVAILABILITY_PERIODS.map(p => `<div class="availability-head">${p.label}</div>`).join("")}`;
+      AVAILABILITY_DAYS.forEach((day, idx) => {
+        html += `<div class="availability-day">${day}</div>`;
+        AVAILABILITY_PERIODS.forEach(period => {
+          const slot = `${idx + 1}-${period.id}`;
+          html += `<label class="availability-cell" title="${day} · ${period.label}"><input type="checkbox" class="availability-slot" value="${slot}" ${selected.includes(slot) ? "checked" : ""} aria-label="${day} ${period.label}" /></label>`;
+        });
+      });
+      document.getElementById("availability-grid").innerHTML = html;
+    }
+
+    async function loadMyAvailability() {
+      const memberId = document.getElementById("availability-member").value;
+      const schedules = await api(`/api/availability?week_key=${availabilityWeekKey()}`);
+      const saved = schedules[memberId];
+      renderAvailabilityGrid(saved?.slots || []);
+      document.getElementById("availability-status").textContent = saved?.updated_at
+        ? `Lịch của bạn đã gửi · cập nhật ${saved.updated_at.replace("T", " ")}` : "Bạn chưa gửi lịch cho tuần này";
+    }
+
+    async function loadAvailability() {
+      const schedules = await api(`/api/availability?week_key=${availabilityWeekKey()}`);
+      const currentId = document.getElementById("availability-member").value;
+      const saved = schedules[currentId];
+      renderAvailabilityGrid(saved?.slots || []);
+      document.getElementById("availability-status").textContent = saved?.updated_at
+        ? `Lịch của bạn đã gửi · cập nhật ${saved.updated_at.replace("T", " ")}` : "Bạn chưa gửi lịch cho tuần này";
+
+      const counts = {};
+      Object.entries(schedules).forEach(([memberId, entry]) => {
+        (entry.slots || []).forEach(slot => {
+          if (!counts[slot]) counts[slot] = [];
+          const member = MEMBERS.find(m => String(m.id) === String(memberId));
+          if (member) counts[slot].push(member.name);
+        });
+      });
+      const results = Object.entries(counts).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+      const submittedCount = Object.keys(schedules).length;
+      const container = document.getElementById("availability-results");
+      if (!submittedCount) {
+        container.innerHTML = `<div class="empty-state">Chưa có ai gửi lịch cho tuần này. Hãy gửi lịch của bạn để bắt đầu tổng hợp.</div>`;
+        return;
+      }
+      if (!results.length) {
+        container.innerHTML = `<div class="empty-state">${submittedCount} người đã gửi nhưng chưa chọn khung giờ nào.</div>`;
+        return;
+      }
+      const bestCount = results[0][1].length;
+      const top = results.filter(([, names]) => names.length === bestCount);
+      container.innerHTML = `<p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Đã nhận lịch của ${submittedCount}/${MEMBERS.length} thành viên · Xếp theo số người có thể tham gia</p>` +
+        results.map(([slot, names]) => {
+          const [day, period] = slot.split("-");
+          const title = `${AVAILABILITY_DAYS[Number(day) - 1]} · ${AVAILABILITY_PERIOD_LABEL[period]}`;
+          return `<div class="availability-result ${names.length === bestCount ? "best" : ""}"><strong>${names.length === bestCount ? "⭐ " : ""}${title} — ${names.length}/${MEMBERS.length} người</strong><p>${names.join(" · ")}</p></div>`;
+        }).join("");
+    }
+
+    async function submitAvailability() {
+      const memberId = document.getElementById("availability-member").value;
+      const slots = [...document.querySelectorAll(".availability-slot:checked")].map(input => input.value);
+      const res = await api("/api/availability", {
+        method: "POST",
+        body: JSON.stringify({ week_key: availabilityWeekKey(), member_id: memberId, slots }),
+      });
+      if (res.ok) {
+        showToast("✅ Đã gửi lịch rảnh");
+        await loadAvailability();
+      } else showToast("❌ " + (res.error || "Không lưu được lịch"));
+    }
+
     function exportWeekly() {
       const from = document.getElementById("week-from").value;
       const to = document.getElementById("week-to").value;
@@ -1105,6 +1241,12 @@
     });
     renderReflectionForm();
     renderDashboard();
+
+    document.getElementById("availability-member").innerHTML = `<option value="">-- Chọn tên --</option>` + MEMBERS.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+    const weekMonday = new Date();
+    weekMonday.setDate(weekMonday.getDate() - ((weekMonday.getDay() + 6) % 7));
+    document.getElementById("availability-week").value = weekMonday.toISOString().slice(0, 10);
+    renderAvailabilityGrid();
 
     const now = new Date();
     const day = now.getDay() || 7;
