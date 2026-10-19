@@ -777,7 +777,10 @@
           <div class="card">
             <div class="card-header" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
               <h3>🤝 Tổng hợp lịch rảnh tuần</h3>
-              <span id="availability-image-week" style="font-size:12px;color:var(--text-muted)"></span>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span id="availability-image-week" style="font-size:12px;color:var(--text-muted)"></span>
+                <button id="copy-availability-summary" class="btn btn-soft" onclick="copyAvailabilitySummary()" disabled>📋 Copy tổng hợp</button>
+              </div>
             </div>
             <div class="card-body">
               <div class="availability-verse">
@@ -1143,6 +1146,7 @@
     }
 
     const AVAILABILITY_DAYS = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+    let availabilitySummaryText = "";
     function availabilityWeekKey() {
       const input = document.getElementById("availability-week");
       return input.value || todayStr();
@@ -1237,6 +1241,9 @@
       const results = segments.sort((a, b) => b.names.length - a.names.length || a.day - b.day || a.start.localeCompare(b.start));
       const submittedCount = Object.keys(schedules).length;
       const container = document.getElementById("availability-results");
+      const copyButton = document.getElementById("copy-availability-summary");
+      availabilitySummaryText = "";
+      copyButton.disabled = true;
       if (!submittedCount) {
         container.innerHTML = `<div class="empty-state">Chưa có ai gửi lịch cho tuần này. Hãy gửi lịch của bạn để bắt đầu tổng hợp.</div>`;
         return;
@@ -1246,11 +1253,34 @@
         return;
       }
       const bestCount = results[0].names.length;
+      availabilitySummaryText = [
+        "🤝 TỔNG HỢP LỊCH RẢNH TUẦN ĐL-T4",
+        `Tuần bắt đầu (Thứ Hai): ${formatDateVN(availabilityWeekKey())}`,
+        `Đã nhận lịch của ${submittedCount}/${MEMBERS.length} thành viên`,
+        "Xếp theo số người cùng rảnh: đông nhất đến ít nhất",
+        "",
+        ...results.map(({ day, start, end, names }) =>
+          `${AVAILABILITY_DAYS[day - 1]} · ${start}–${end} — ${names.length}/${MEMBERS.length} người\n${names.join(" · ")}`),
+      ].join("\n\n");
+      copyButton.disabled = false;
       container.innerHTML = `<p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Đã nhận lịch của ${submittedCount}/${MEMBERS.length} thành viên · Xếp theo số người cùng rảnh</p>` +
         results.map(({ day, start, end, names }) => {
           const title = `${AVAILABILITY_DAYS[day - 1]} · ${start}–${end}`;
           return `<div class="availability-result ${names.length === bestCount ? "best" : ""}"><strong>${names.length === bestCount ? "⭐ " : ""}${title} — ${names.length}/${MEMBERS.length} người</strong><p>${names.join(" · ")}</p></div>`;
         }).join("");
+    }
+
+    async function copyAvailabilitySummary() {
+      if (!availabilitySummaryText) {
+        showToast("⚠️ Chưa có lịch tổng hợp để copy");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(availabilitySummaryText);
+        showToast("📋 Đã copy tổng hợp lịch tuần");
+      } catch {
+        prompt("Copy tổng hợp lịch tuần:", availabilitySummaryText);
+      }
     }
 
     async function submitAvailability() {
