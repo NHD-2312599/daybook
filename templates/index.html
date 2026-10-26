@@ -816,6 +816,15 @@
               <div class="empty-state">Đang tải...</div>
             </div>
           </div>
+          <div style="padding:22px 14px 10px">
+            <h2 style="font-size:20px;margin-bottom:4px">Lịch rảnh theo tuần</h2>
+            <p class="subtitle">Xem lại lịch rảnh đã gửi theo từng tuần</p>
+          </div>
+          <div class="card">
+            <div class="card-body" id="availability-history-content">
+              <div class="empty-state">Đang tải...</div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -1253,14 +1262,37 @@
         return;
       }
       const bestCount = results[0].names.length;
+      const memberScheduleLines = MEMBERS
+        .filter(member => schedules[member.id])
+        .map((member, index) => {
+          const intervals = schedules[member.id].intervals || [];
+          const dayLines = AVAILABILITY_DAYS.flatMap((day, dayIndex) => {
+            const dayIntervals = intervals
+              .filter(interval => interval.day === dayIndex + 1)
+              .sort((a, b) => a.start.localeCompare(b.start));
+            return dayIntervals.length
+              ? [`${day}: ${dayIntervals.map(interval => `${interval.start}–${interval.end}`).join(", ")}`]
+              : [];
+          });
+          return dayLines.length ? [`${index + 1}. ${member.name}`, ...dayLines] : [];
+        })
+        .flat();
+      const sharedResults = results.filter(result => result.names.length >= 3);
       availabilitySummaryText = [
         "🤝 TỔNG HỢP LỊCH RẢNH TUẦN ĐL-T4",
         `Tuần bắt đầu (Thứ Hai): ${formatDateVN(availabilityWeekKey())}`,
         `Đã nhận lịch của ${submittedCount}/${MEMBERS.length} thành viên`,
-        "Xếp theo số người cùng rảnh: đông nhất đến ít nhất",
         "",
-        ...results.map(({ day, start, end, names }) =>
-          `${AVAILABILITY_DAYS[day - 1]} · ${start}–${end} — ${names.length}/${MEMBERS.length} người\n${names.join(" · ")}`),
+        "KHUNG GIỜ RẢNH CỦA TỪNG THÀNH VIÊN",
+        "",
+        ...(memberScheduleLines.length ? memberScheduleLines : ["Chưa có khung giờ được gửi."]),
+        "",
+        "KHUNG GIỜ TRÙNG NHAU (TỪ 3 THÀNH VIÊN)",
+        "",
+        ...(sharedResults.length
+          ? sharedResults.map(({ day, start, end, names }) =>
+            `${AVAILABILITY_DAYS[day - 1]} · ${start}–${end} — ${names.length} thành viên\n${names.join(" · ")}`)
+          : ["Chưa có khung giờ trùng từ 3 thành viên trở lên."]),
       ].join("\n\n");
       copyButton.disabled = false;
       container.innerHTML = `<p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Đã nhận lịch của ${submittedCount}/${MEMBERS.length} thành viên · Xếp theo số người cùng rảnh</p>` +
@@ -1322,16 +1354,13 @@
         "“Vì nơi nào có hai ba người nhân danh ta nhóm nhau lại, thì ta ở giữa họ.”",
         "— Ma-thi-ơ 18:20 · Kinh Thánh Tiếng Việt 1925",
         "",
-        "Anh em mình cùng sắp xếp khung giờ phù hợp để được thông công, khích lệ và đồng hành với nhau nhé!",
+        "Mỗi ngày ghi giờ rảnh; nhiều khung giờ thì thêm dòng. Bận cả ngày ghi ‘Bận cả ngày’.",
         "",
         "Tên:",
         "",
       ];
       AVAILABILITY_DAYS.forEach(day => {
-        lines.push(`${day}:`);
-        lines.push("- __:__ đến __:__");
-        lines.push("- (nếu có thêm khung giờ, ghi thêm một dòng; nếu bận cả ngày, ghi ‘Bận cả ngày’)");
-        lines.push("");
+        lines.push(`${day}: __:__–__:__`);
       });
       return lines.join("\n");
     }
@@ -1431,10 +1460,6 @@
 
     async function renderHistory() {
       const history = await api("/api/history");
-      if (!history.length) {
-        document.getElementById("history-content").innerHTML = `<div class="empty-state">Chưa có dữ liệu</div>`;
-        return;
-      }
       let html = "";
       history.forEach(item => {
         html += `<div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">`;
@@ -1446,7 +1471,29 @@
         if (item.has_reflection) html += `<div style="font-size:13px;color:var(--primary)">📖 Có suy ngẫm</div>`;
         html += `</div>`;
       });
-      document.getElementById("history-content").innerHTML = html;
+      document.getElementById("history-content").innerHTML = html || `<div class="empty-state">Chưa có dữ liệu hoạt động</div>`;
+
+      const availabilityWeeks = await api("/api/availability");
+      const weekKeys = Object.keys(availabilityWeeks || {}).sort((a, b) => b.localeCompare(a));
+      if (!weekKeys.length) {
+        document.getElementById("availability-history-content").innerHTML = `<div class="empty-state">Chưa có lịch rảnh được lưu</div>`;
+        return;
+      }
+      const dayNames = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+      document.getElementById("availability-history-content").innerHTML = weekKeys.map(weekKey => {
+        const schedules = availabilityWeeks[weekKey] || {};
+        const submitted = Object.entries(schedules).map(([memberId, entry]) => {
+          const member = MEMBERS.find(item => String(item.id) === String(memberId));
+          if (!member) return "";
+          const byDay = dayNames.flatMap((dayName, dayIndex) => {
+            const intervals = (entry.intervals || []).filter(interval => interval.day === dayIndex + 1)
+              .sort((a, b) => a.start.localeCompare(b.start));
+            return intervals.length ? [`<div style="font-size:12px;margin:2px 0"><strong>${dayName}:</strong> ${intervals.map(i => `${i.start}–${i.end}`).join(", ")}</div>`] : [];
+          }).join("");
+          return byDay ? `<div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong>${member.name}</strong>${byDay}</div>` : "";
+        }).filter(Boolean).join("");
+        return `<section style="margin-bottom:20px"><h3 style="font-size:16px;margin-bottom:8px">Tuần bắt đầu ${formatDateVN(weekKey)}</h3>${submitted || `<div class="subtitle">Chưa có khung giờ được gửi</div>`}</section>`;
+      }).join("");
     }
 
     async function exportHistoryImage() {

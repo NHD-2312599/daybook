@@ -233,9 +233,9 @@ def api_availability():
     """Đọc hoặc lưu lịch rảnh theo tuần cho từng thành viên."""
     if request.method == "GET":
         week_key = request.args.get("week_key", "")
-        if not week_key:
-            return jsonify({"ok": False, "error": "Thiếu week_key"}), 400
         data = load_data()
+        if not week_key:
+            return jsonify(data.get("availability_weeks", {}))
         return jsonify(data.get("availability_weeks", {}).get(week_key, {}))
 
     payload = request.get_json(force=True)
