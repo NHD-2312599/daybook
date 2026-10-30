@@ -7,6 +7,39 @@ const categoryFilter = document.querySelector('#categoryFilter');
 const detailDialog = document.querySelector('#eventDetailDialog');
 let activeDetailEvent = null;
 
+function updateCalendarNowLine() {
+  const tracks = document.querySelectorAll('.calendar-day-track[data-date]');
+  if (!tracks.length) return;
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date()).reduce((values, part) => {
+    values[part.type] = part.value;
+    return values;
+  }, {});
+  const dateKey = `${parts.year}-${parts.month}-${parts.day}`;
+  const track = [...tracks].find((item) => item.dataset.date === dateKey);
+  document.querySelectorAll('.calendar-now').forEach((line) => line.remove());
+  if (!track) return;
+
+  const hour = Number(parts.hour);
+  const minute = Number(parts.minute);
+  const second = Number(parts.second);
+  if (hour < 7 || hour >= 24) return;
+
+  const line = document.createElement('div');
+  line.className = 'calendar-now';
+  line.style.top = `${hour * 60 + minute + second / 60 - 7 * 60}px`;
+  line.setAttribute('aria-label', `Giờ hiện tại ${parts.hour}:${parts.minute}`);
+  line.innerHTML = '<i></i>';
+  track.append(line);
+}
+
+updateCalendarNowLine();
+window.setInterval(updateCalendarNowLine, 15000);
+
 function syncCategoryColor(select) {
   if (!select) return;
   [...select.classList].filter((name) => name.startsWith('category-')).forEach((name) => select.classList.remove(name));
@@ -550,8 +583,17 @@ document.querySelectorAll('.event-item').forEach((item) => {
     if (!await toggleMission(item, checkbox.dataset.missionIndex, checkbox)) checkbox.checked = wasChecked;
   }));
   item.querySelector('.check-button')?.addEventListener('click', async () => {
-    const response = await fetch(`/api/events/${item.dataset.eventId}/toggle`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ occurrence_date: item.dataset.occurrence }) });
-    if (response.ok) window.location.reload();
+    const button = item.querySelector('.check-button');
+    button.disabled = true;
+    try {
+      const response = await fetch(`/api/events/${item.dataset.eventId}/toggle`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ occurrence_date: item.dataset.occurrence }) });
+      if (response.ok) window.location.reload();
+      else toast('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
+    } catch (error) {
+      toast('Không kết nối được máy chủ. Vui lòng thử lại.');
+    } finally {
+      button.disabled = false;
+    }
   });
   item.querySelector('.delete-button')?.addEventListener('click', async () => {
     if (!window.confirm('Xóa sự kiện này và các lần lặp của nó?')) return;

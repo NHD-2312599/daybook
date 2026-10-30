@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import contextmanager
 from calendar import Calendar, monthrange
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from urllib.parse import quote, urlparse
 
@@ -28,6 +29,15 @@ CATEGORY_LABELS = {
 }
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
+LOCAL_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
+
+
+def local_now():
+    return datetime.now(LOCAL_TIMEZONE)
+
+
+def local_today():
+    return local_now().date()
 
 
 @contextmanager
@@ -358,6 +368,8 @@ def layout_calendar(occurrences: dict, start_hour: int = 7, end_hour: int = 24):
 
 @app.get("/")
 def dashboard():
+    now = local_now()
+    today = now.date()
     period = request.args.get("period", "week")
     if period not in {"day", "week", "month", "quarter", "year"}:
         period = "week"
@@ -365,9 +377,9 @@ def dashboard():
     if detail_view not in {"timeline", "list", "category", "board"}:
         detail_view = "timeline"
     try:
-        anchor = date.fromisoformat(request.args.get("date", date.today().isoformat()))
+        anchor = date.fromisoformat(request.args.get("date", today.isoformat()))
     except ValueError:
-        anchor = date.today()
+        anchor = today
     category_filter = request.args.get("category", "all")
     if category_filter not in {"all", *CATEGORY_LABELS}:
         category_filter = "all"
@@ -385,7 +397,7 @@ def dashboard():
                 "date": day.isoformat(),
                 "day": day.day,
                 "in_month": day.month == anchor.month,
-                "today": day == date.today(),
+                "today": day == today,
                 "selected": day == anchor,
                 "has_events": day.isoformat() in mini_event_dates,
             }
@@ -397,11 +409,10 @@ def dashboard():
     next_month = month_end + timedelta(days=1)
     total = sum(sum(item["occurrence_status"] not in {"cancelled", "rescheduled"} for item in items) for items in occurrences.values())
     done = sum(sum(item["completed"] and item["occurrence_status"] == "planned" for item in items) for items in occurrences.values())
-    today_key = date.today().isoformat()
-    today_items = get_occurrences(date.today(), date.today(), selected_category)[today_key]
+    today_key = today.isoformat()
+    today_items = get_occurrences(today, today, selected_category)[today_key]
     today_total = sum(item["occurrence_status"] not in {"cancelled", "rescheduled"} for item in today_items)
     today_done = sum(item["completed"] and item["occurrence_status"] == "planned" for item in today_items)
-    now = datetime.now()
     now_minute = now.hour * 60 + now.minute
     now_calendar_top = now_minute - 7 * 60 if 7 * 60 <= now_minute < 24 * 60 else None
     prev_anchor = anchor - (end - start + timedelta(days=1))
@@ -423,7 +434,7 @@ def dashboard():
         "week": review_week_start,
         "month": review_month_start,
     }
-    goal_periods = {scope: next_goal_period(date.today(), scope) for scope in ("week", "month", "quarter")}
+    goal_periods = {scope: next_goal_period(today, scope) for scope in ("week", "month", "quarter")}
     with connect_db() as db:
         reflection_rows = db.execute(
             "SELECT * FROM reflections WHERE (period_type='week' AND period_start=?) OR (period_type='month' AND period_start=?)",
@@ -464,7 +475,7 @@ def dashboard():
         now_calendar_top=now_calendar_top,
         prev_anchor=prev_anchor,
         next_anchor=next_anchor,
-        today=date.today(),
+        today=today,
         review_periods=review_periods,
         review_week_end=review_week_end,
         review_month_end=period_bounds(anchor, "month")[1],
@@ -663,7 +674,7 @@ def toggle_mission(event_id):
             """INSERT INTO mission_completions(event_id, occurrence_date, mission_index, completed)
                VALUES (?, ?, ?, ?) ON CONFLICT(event_id, occurrence_date, mission_index)
                DO UPDATE SET completed=excluded.completed""",
-            (event_id, occurrence.isoformat(), mission_index, completed),
+            (event_id, occurrence.isoformat(), mission_index, int(completed)),
         )
     return jsonify(completed=bool(completed))
 
@@ -720,7 +731,7 @@ def toggle_event(event_id):
             """INSERT INTO completions(event_id, occurrence_date, completed)
                VALUES (?, ?, ?)
                ON CONFLICT (event_id, occurrence_date) DO UPDATE SET completed=excluded.completed""",
-            (event_id, occurrence.isoformat(), completed),
+            (event_id, occurrence.isoformat(), int(completed)),
         )
     return jsonify(completed=bool(completed))
 

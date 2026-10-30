@@ -13,7 +13,7 @@
                 {% for hour in range(7, 25) %}<span style="top: {{ (hour - 7) * 60 - 7 }}px">{{ '%02d:00'|format(hour) }}</span>{% endfor %}
               </div>
               {% for key,items in calendar_occurrences.items() %}
-              <div class="calendar-day-track {% if key == today.isoformat() %}is-today{% endif %}">
+              <div class="calendar-day-track {% if key == today.isoformat() %}is-today{% endif %}" data-date="{{ key }}">
                 {% for hour in range(18) %}<i class="calendar-hour-line" style="top: {{ hour * 60 }}px"></i>{% endfor %}
                 {% for event in items %}
                 <article class="event-item calendar-event priority-{{ event.priority }} category-{{ event.category }} {% if event.calendar_width < 100 %}is-overlapping{% endif %} {% if event.end_time <= event.start_time %}is-overnight{% endif %} {% if event.completed %}is-done{% endif %} {% if event.occurrence_status == 'cancelled' %}is-cancelled{% elif event.occurrence_status == 'rescheduled' %}is-rescheduled{% endif %}" data-event-id="{{ event.id }}" data-occurrence="{{ event.occurrence_date }}" data-occurrence-status="{{ event.occurrence_status }}" data-status-note="{{ event.status_note }}" style="top: {{ event.calendar_top }}px; height: {{ event.calendar_height }}px; left: calc({{ event.calendar_left }}% + 3px); width: calc({{ event.calendar_width }}% - 6px)">
