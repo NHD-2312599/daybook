@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import json
-import secrets
 import sqlite3
 from contextlib import contextmanager
 from calendar import Calendar, monthrange
@@ -793,65 +792,6 @@ def get_history():
 @app.get("/health")
 def health():
     return jsonify(status="ok", app="To-Do Dashboard")
-
-
-@app.post("/api/_migration/local-sqlite")
-def import_local_sqlite_data():
-    expected_token = os.environ.get("MIGRATION_TOKEN")
-    provided_token = request.headers.get("X-Migration-Token", "")
-    if not expected_token or not secrets.compare_digest(expected_token, provided_token):
-        abort(404)
-    if not DATABASE_URL:
-        abort(503)
-    if request.content_length and request.content_length > 2 * 1024 * 1024:
-        abort(413)
-
-    table_columns = {
-        "events": (
-            "id", "title", "event_date", "start_time", "end_time", "priority",
-            "repeat_rule", "repeat_until", "notes", "created_at", "category",
-            "zoom_link", "zoom_id", "zoom_password", "missions", "repeat_days",
-            "repeat_interval",
-        ),
-        "completions": ("event_id", "occurrence_date", "completed"),
-        "mission_completions": ("event_id", "occurrence_date", "mission_index", "completed"),
-        "occurrence_statuses": ("event_id", "occurrence_date", "status", "note"),
-        "reflections": ("period_type", "period_start", "proud", "improve", "lesson", "memory", "pattern"),
-        "goals": ("period_type", "period_start", "period_end", "goal_text", "reason", "first_step"),
-    }
-    payload = request.get_json(silent=True)
-    if not isinstance(payload, dict) or set(payload) != set(table_columns):
-        return jsonify(error="Invalid migration payload"), 400
-    for table, columns in table_columns.items():
-        rows = payload[table]
-        if not isinstance(rows, list) or any(not isinstance(row, dict) or set(row) != set(columns) for row in rows):
-            return jsonify(error=f"Invalid rows for {table}"), 400
-
-    imported = {}
-    with connect_db() as db:
-        existing = {
-            table: db.execute(f"SELECT COUNT(*) AS count FROM {table}").fetchone()["count"]
-            for table in table_columns
-        }
-        if any(existing.values()):
-            return jsonify(error="Target database is not empty", existing=existing), 409
-
-        for table, columns in table_columns.items():
-            rows = payload[table]
-            placeholders = ", ".join("?" for _ in columns)
-            column_list = ", ".join(columns)
-            statement = f"INSERT INTO {table} ({column_list}) VALUES ({placeholders})"
-            for row in rows:
-                db.execute(statement, tuple(row[column] for column in columns))
-            imported[table] = len(rows)
-
-        db.execute(
-            """SELECT setval(pg_get_serial_sequence('events', 'id'),
-                       (SELECT COALESCE(MAX(id), 1) FROM events),
-                       EXISTS (SELECT 1 FROM events))"""
-        )
-
-    return jsonify(imported=imported)
 
 
 init_db()
