@@ -207,6 +207,47 @@ def period_bounds(anchor: date, period: str):
     return start, start + timedelta(days=6)
 
 
+def build_statistics(period: str, today: date, category: str | None = None):
+    start, end = period_bounds(today, period)
+    occurrences = get_occurrences(start, end, category)
+    if period == "week":
+        buckets = [(start + timedelta(days=offset), start + timedelta(days=offset), f"T{(start + timedelta(days=offset)).isoweekday() + 1 if (start + timedelta(days=offset)).isoweekday() < 7 else 'CN'}") for offset in range(7)]
+    elif period == "month":
+        buckets = [(start + timedelta(days=offset), start + timedelta(days=offset), f"{offset + 1:02d}") for offset in range((end - start).days + 1)]
+    else:
+        buckets = []
+        month = start.month
+        while month <= end.month:
+            bucket_start = date(start.year, month, 1)
+            bucket_end = min(date(start.year, month, monthrange(start.year, month)[1]), end)
+            buckets.append((bucket_start, bucket_end, f"T{month}"))
+            month += 1
+
+    series = []
+    totals = {"events_total": 0, "events_done": 0, "missions_total": 0, "missions_done": 0}
+    for bucket_start, bucket_end, label in buckets:
+        values = {"events_total": 0, "events_done": 0, "missions_total": 0, "missions_done": 0}
+        day = bucket_start
+        while day <= bucket_end:
+            for event in occurrences.get(day.isoformat(), []):
+                if event["occurrence_status"] != "planned":
+                    continue
+                values["events_total"] += 1
+                values["events_done"] += int(bool(event["completed"]))
+                values["missions_total"] += len(event["missions"])
+                values["missions_done"] += sum(int(bool(mission["completed"])) for mission in event["missions"])
+            day += timedelta(days=1)
+        totals = {key: totals[key] + values[key] for key in totals}
+        series.append({
+            "label": label,
+            "title": f"{bucket_start.strftime('%d/%m')} – {bucket_end.strftime('%d/%m')}" if bucket_start != bucket_end else bucket_start.strftime("%d/%m/%Y"),
+            **values,
+            "events_rate": round(values["events_done"] * 100 / values["events_total"]) if values["events_total"] else 0,
+            "missions_rate": round(values["missions_done"] * 100 / values["missions_total"]) if values["missions_total"] else 0,
+        })
+    return {"start": start, "end": end, "totals": totals, "series": series}
+
+
 def next_goal_period(today: date, period: str):
     if period == "week":
         start = today - timedelta(days=today.weekday()) + timedelta(days=7)
@@ -384,6 +425,10 @@ def dashboard():
     if category_filter not in {"all", *CATEGORY_LABELS}:
         category_filter = "all"
     selected_category = None if category_filter == "all" else category_filter
+    stats_period = request.args.get("stats_period", "week")
+    if stats_period not in {"week", "month", "quarter", "year"}:
+        stats_period = "week"
+    statistics = build_statistics(stats_period, today, selected_category)
     start, end = period_bounds(anchor, period)
     occurrences = get_occurrences(start, end, selected_category)
     calendar_occurrences = layout_calendar(occurrences)
@@ -454,6 +499,8 @@ def dashboard():
         period=period,
         category_filter=category_filter,
         category_labels=CATEGORY_LABELS,
+        stats_period=stats_period,
+        statistics=statistics,
         detail_view=detail_view,
         anchor=anchor,
         start=start,

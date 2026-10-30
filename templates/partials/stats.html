@@ -1,5 +1,35 @@
-      <section class="stat-grid" id="summary">
-        <article class="stat-card stat-cream stat-progress"><div class="stat-top"><span>TIẾN ĐỘ {{ {'day':'HÔM NAY','week':'TUẦN NÀY','month':'THÁNG NÀY','quarter':'QUÝ NÀY','year':'NĂM NÀY'}[period] }}</span></div><div class="stat-progress-content"><div class="stat-value">{{ done }}<small> / {{ total }}</small></div><div class="progress-circle" style="--progress: {{ (done / total * 100)|round if total else 0 }}%"><span>{{ (done / total * 100)|round|int if total else 0 }}%</span></div></div><div class="stat-foot"><span>Việc đã hoàn thành</span></div></article>
-        <article class="stat-card stat-lilac"><div class="stat-top"><span>LỊCH HÔM NAY</span><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M7.5 3v4M16.5 3v4M4 9.5h16"/></svg></span></div><div class="stat-value">{{ today_total }}<small> việc</small></div><div class="stat-foot stat-spaced"><span>{{ today.strftime('%A, %d/%m') }}</span><a href="/?period=day&category={{ category_filter }}">Xem lịch <b>↗</b></a></div></article>
-        <article class="stat-card stat-peach"><div class="stat-top"><span>ĐÃ HOÀN THÀNH HÔM NAY</span><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18.5h14M7.5 15V9.5h3V15m2 0V5h3v10m2 0v-3h2v3"/></svg></span></div><div class="stat-value">{{ today_done }}<small> / {{ today_total }}</small></div><div class="stat-foot stat-spaced"><span>Tiếp tục giữ nhịp nhé</span><span class="sunny">{{ (today_done / today_total * 100)|round|int if today_total else 0 }}%</span></div></article>
-      </section>
+<section class="analytics-section" id="summary">
+  <section class="stat-grid">
+    <article class="stat-card stat-cream stat-progress"><div class="stat-top"><span>TIẾN ĐỘ {{ {'day':'HÔM NAY','week':'TUẦN NÀY','month':'THÁNG NÀY','quarter':'QUÝ NÀY','year':'NĂM NÀY'}[period] }}</span></div><div class="stat-progress-content"><div class="stat-value">{{ done }}<small> / {{ total }}</small></div><div class="progress-circle" style="--progress: {{ (done / total * 100)|round if total else 0 }}%"><span>{{ (done / total * 100)|round|int if total else 0 }}%</span></div></div><div class="stat-foot"><span>Việc đã hoàn thành</span></div></article>
+    <article class="stat-card stat-lilac"><div class="stat-top"><span>LỊCH HÔM NAY</span><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M7.5 3v4M16.5 3v4M4 9.5h16"/></svg></span></div><div class="stat-value">{{ today_total }}<small> việc</small></div><div class="stat-foot stat-spaced"><span>{{ today.strftime('%A, %d/%m') }}</span><a href="/?period=day&category={{ category_filter }}">Xem lịch <b>↗</b></a></div></article>
+    <article class="stat-card stat-peach"><div class="stat-top"><span>ĐÃ HOÀN THÀNH HÔM NAY</span><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18.5h14M7.5 15V9.5h3V15m2 0V5h3v10m2 0v-3h2v3"/></svg></span></div><div class="stat-value">{{ today_done }}<small> / {{ today_total }}</small></div><div class="stat-foot stat-spaced"><span>Tiếp tục giữ nhịp nhé</span><span class="sunny">{{ (today_done / today_total * 100)|round|int if today_total else 0 }}%</span></div></article>
+  </section>
+
+  <section class="analytics-card" aria-labelledby="analyticsTitle">
+    <div class="analytics-heading">
+      <div><p class="eyebrow">BỨC TRANH TIẾN ĐỘ</p><h2 id="analyticsTitle">Thống kê hoạt động</h2><p class="analytics-range">{{ statistics.start.strftime('%d/%m/%Y') }} – {{ statistics.end.strftime('%d/%m/%Y') }}</p></div>
+      <nav class="analytics-periods" aria-label="Chọn kỳ thống kê">
+        {% for value,label in [('week','Tuần'),('month','Tháng'),('quarter','Quý'),('year','Năm')] %}
+        <a class="{% if stats_period == value %}is-active{% endif %}" href="/?period={{ period }}&date={{ anchor.isoformat() }}&category={{ category_filter }}&view={{ detail_view }}&stats_period={{ value }}#summary" {% if stats_period == value %}aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+
+    <div class="analytics-kpis">
+      <article><span>Sự kiện hoàn thành</span><strong>{{ statistics.totals.events_done }} <small>/ {{ statistics.totals.events_total }}</small></strong><div class="analytics-progress"><i style="width:{{ (statistics.totals.events_done * 100 / statistics.totals.events_total)|round|int if statistics.totals.events_total else 0 }}%"></i></div><small>{{ (statistics.totals.events_done * 100 / statistics.totals.events_total)|round|int if statistics.totals.events_total else 0 }}% sự kiện trong kỳ</small></article>
+      <article><span>Mission hoàn thành</span><strong>{{ statistics.totals.missions_done }} <small>/ {{ statistics.totals.missions_total }}</small></strong><div class="analytics-progress mission"><i style="width:{{ (statistics.totals.missions_done * 100 / statistics.totals.missions_total)|round|int if statistics.totals.missions_total else 0 }}%"></i></div><small>Đã hoàn thành / đã đề ra</small></article>
+      <article><span>Sự kiện đã lên lịch</span><strong>{{ statistics.totals.events_total }}</strong><div class="analytics-progress scheduled"><i style="width:100%"></i></div><small>{{ {'week':'Trong 7 ngày','month':'Trong tháng','quarter':'Trong quý','year':'Trong năm'}[stats_period] }}</small></article>
+    </div>
+
+    <div class="analytics-chart-heading"><strong>Tỷ lệ hoàn thành theo {{ {'week':'ngày','month':'ngày','quarter':'tháng','year':'tháng'}[stats_period] }}</strong><span>0–100%</span></div>
+    <div class="analytics-chart-scroll"><div class="analytics-chart" style="--bucket-count:{{ statistics.series|length }}">
+      {% for point in statistics.series %}
+      <div class="analytics-bucket" title="{{ point.title }} · Sự kiện {{ point.events_done }}/{{ point.events_total }} · Mission {{ point.missions_done }}/{{ point.missions_total }}">
+        <div class="analytics-bars"><i class="event-rate" style="height:{{ point.events_rate }}%"></i><i class="mission-rate" style="height:{{ point.missions_rate }}%"></i></div>
+        <span>{{ point.label }}</span>
+      </div>
+      {% endfor %}
+    </div></div>
+    <div class="analytics-legend"><span><i class="event-rate"></i>Sự kiện hoàn thành</span><span><i class="mission-rate"></i>Mission hoàn thành</span></div>
+  </section>
+</section>
