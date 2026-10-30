@@ -11,6 +11,12 @@ from urllib.parse import quote, urlparse
 
 from flask import Flask, abort, jsonify, render_template, request
 
+DATABASE_URL = (
+    os.environ.get("DATABASE_URL")
+    or os.environ.get("DATABASE_URL_UNPOOLED")
+    or os.environ.get("DATABASE_POSTGRES_URL")
+    or os.environ.get("POSTGRES_URL")
+)
 DATABASE_PATH = os.path.join(os.path.dirname(__file__), "instance", "todo.db")
 CATEGORY_LABELS = {
     "work": "Công việc",
@@ -26,6 +32,18 @@ app.config["JSON_AS_ASCII"] = False
 
 @contextmanager
 def connect_db():
+    if DATABASE_URL:
+        import psycopg
+        from psycopg.rows import dict_row
+
+        db = psycopg.connect(DATABASE_URL, row_factory=dict_row)
+        try:
+            with db:
+                yield PostgresConnection(db)
+        finally:
+            db.close()
+        return
+
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
     db = sqlite3.connect(DATABASE_PATH)
     db.row_factory = sqlite3.Row
@@ -37,11 +55,22 @@ def connect_db():
         db.close()
 
 
+class PostgresConnection:
+    """Small adapter so the app can keep using SQLite-style ? placeholders."""
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def execute(self, query, params=()):
+        return self.connection.execute(query.replace("?", "%s"), params)
+
+
 def init_db():
     with connect_db() as db:
+        id_column = "BIGSERIAL PRIMARY KEY" if DATABASE_URL else "INTEGER PRIMARY KEY AUTOINCREMENT"
         db.execute(
-                """CREATE TABLE IF NOT EXISTS events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                f"""CREATE TABLE IF NOT EXISTS events (
+                    id {id_column},
                     title TEXT NOT NULL,
                     event_date TEXT NOT NULL,
                     start_time TEXT NOT NULL,
@@ -57,7 +86,15 @@ def init_db():
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )"""
             )
-        columns = {row["name"] for row in db.execute("PRAGMA table_info(events)").fetchall()}
+        if DATABASE_URL:
+            columns = {
+                row["column_name"]
+                for row in db.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'events'"
+                ).fetchall()
+            }
+        else:
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(events)").fetchall()}
         if "category" not in columns:
             db.execute("ALTER TABLE events ADD COLUMN category TEXT NOT NULL DEFAULT 'personal'")
         if "zoom_link" not in columns:

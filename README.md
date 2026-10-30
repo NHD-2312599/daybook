@@ -1,6 +1,6 @@
 # To-Do Dashboard
 
-Ứng dụng quản lý lịch trình cá nhân chạy bằng Python Flask, giao diện tiếng Việt và lưu dữ liệu cục bộ bằng SQLite.
+Ứng dụng quản lý lịch trình cá nhân chạy bằng Python Flask, giao diện tiếng Việt. Khi chạy local, dữ liệu được lưu bằng SQLite; khi deploy, app dùng PostgreSQL nếu có biến kết nối.
 
 ## Chạy ứng dụng
 
@@ -10,7 +10,15 @@
 4. Khởi chạy: `python app.py`.
 5. Mở địa chỉ `http://127.0.0.1:5000` trong trình duyệt.
 
-Dữ liệu được lưu trong `instance/todo.db`. Không cần cài hoặc chạy PostgreSQL.
+Dữ liệu local được lưu trong `instance/todo.db`.
+
+## Deploy lên Vercel với Neon
+
+1. Kết nối Neon với project Vercel và bật biến `DATABASE_URL` (hoặc `DATABASE_URL_UNPOOLED`) cho Production và Preview.
+2. Đảm bảo các biến đã được thêm vào đúng project Vercel.
+3. Redeploy sau khi thêm biến. App sẽ tự tạo các bảng PostgreSQL khi khởi động.
+
+Vercel không giữ file SQLite trong thư mục ứng dụng; Neon PostgreSQL được dùng để lưu dữ liệu bền vững khi biến kết nối có mặt.
 
 ## Chức năng hiện có
 
