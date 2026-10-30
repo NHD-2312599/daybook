@@ -1,19 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Lịch trình · To-Do Dashboard{% endblock %}
+{% block title %}{{ page_title }} · Daybook{% endblock %}
 {% block body %}
 <div class="app-shell">
   {% include "partials/sidebar.html" %}
   <main class="main-content">
     {% include "partials/topbar.html" %}
-    <div class="page-wrap">
-      {% include "partials/welcome.html" %}
-      {% include "partials/stats.html" %}
+    <div class="page-wrap page-{{ page }}">
+      {% if page in ['overview', 'calendar'] %}{% include "partials/welcome.html" %}{% endif %}
+      {% if page == 'overview' %}
+      <section class="module-launcher"><div class="section-heading"><div><p class="eyebrow">KHÔNG GIAN CỦA BẠN</p><h2>Bạn muốn làm gì hôm nay?</h2></div></div><div class="module-grid">
+        <a class="module-card module-calendar" href="/calendar"><span class="module-card-icon">▦</span><strong>Lịch</strong><small>Xem và quản lý sự kiện</small><b>↗</b></a>
+        <a class="module-card module-statistics" href="/statistics"><span class="module-card-icon">▥</span><strong>Thống kê</strong><small>Theo dõi tiến độ theo kỳ</small><b>↗</b></a>
+        <a class="module-card module-reflections" href="/reflections"><span class="module-card-icon">♡</span><strong>Tổng kết</strong><small>Ghi lại điều bạn đã trải qua</small><b>↗</b></a>
+        <a class="module-card module-goals" href="/goals"><span class="module-card-icon">◎</span><strong>Mục tiêu</strong><small>Lập kế hoạch cho chặng tiếp theo</small><b>↗</b></a>
+        <a class="module-card module-history" href="/history"><span class="module-card-icon">◷</span><strong>Lịch sử</strong><small>Xem lại nội dung đã lưu</small><b>↗</b></a>
+      </div></section>
+      {% elif page == 'calendar' %}
       {% include "partials/schedule.html" %}
+      {% elif page == 'statistics' %}
+      {% include "partials/stats.html" %}
+      {% elif page == 'reflections' %}
       {% include "partials/reflection.html" %}
+      {% elif page == 'goals' %}
+      {% include "partials/goals.html" %}
+      {% elif page == 'history' %}
       {% include "partials/history.html" %}
+      {% endif %}
       {% include "partials/footer.html" %}
     </div>
   </main>
 </div>
-{% include "partials/dialogs.html" %}
+{% if page == 'calendar' %}{% include "partials/dialogs.html" %}{% endif %}
 {% endblock %}

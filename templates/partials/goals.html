@@ -1,0 +1,15 @@
+      <section class="reflection-section" id="goals">
+        <div class="reflection-heading"><div><p class="eyebrow">HƯỚNG TỚI · LẬP KẾ HOẠCH</p><h2>Mục tiêu</h2><p class="reflection-intro">Chọn một mục tiêu phù hợp với thời gian và chia nó thành bước nhỏ đầu tiên.</p></div></div>
+          <article class="reflection-card goals-card">
+            <div class="reflection-card-heading"><div><span class="reflection-kicker">HƯỚNG TỚI</span><h3>Mục tiêu sắp tới</h3></div></div>
+            <div class="goal-tabs" role="tablist" aria-label="Chọn thời hạn mục tiêu">{% for scope,label in [('week','Tuần'),('month','Tháng'),('quarter','Quý')] %}<button type="button" class="goal-tab{% if scope == 'week' %} is-active{% endif %}" data-goal-tab="{{ scope }}" role="tab" aria-selected="{{ 'true' if scope == 'week' else 'false' }}">{{ label }}</button>{% endfor %}</div>
+            {% for scope,label in [('week','Tuần'),('month','Tháng'),('quarter','Quý')] %}{% set bounds = goal_periods[scope] %}{% set goal = goals.get(scope, {}) %}
+            <form class="goal-form{% if scope != 'week' %} is-hidden{% endif %}" data-goal-form="{{ scope }}" data-period-start="{{ bounds[0].isoformat() }}" data-period-end="{{ bounds[1].isoformat() }}">
+              <p class="reflection-period">{{ bounds[0].strftime('%d/%m') }} – {{ bounds[1].strftime('%d/%m/%Y') }}</p>
+              <label class="reflection-field"><span>Điều quan trọng nhất bạn muốn làm?</span><textarea name="goal_text" maxlength="500" rows="2" required placeholder="Ví dụ: Hoàn thành bản đề xuất dự án">{{ goal.get('goal_text', '') }}</textarea></label>
+              <label class="reflection-field"><span>Vì sao điều này quan trọng với bạn?</span><textarea name="reason" maxlength="1000" rows="2" placeholder="Mình muốn…">{{ goal.get('reason', '') }}</textarea></label>
+              <label class="reflection-field"><span>Bước nhỏ đầu tiên là gì?</span><textarea name="first_step" maxlength="500" rows="2" placeholder="Mình sẽ bắt đầu bằng…">{{ goal.get('first_step', '') }}</textarea></label>
+              <div class="reflection-form-footer"><button class="primary-button" type="submit">Lưu mục tiêu</button><span class="goal-save-status" aria-live="polite"></span></div>
+            </form>{% endfor %}
+          </article>
+      </section>

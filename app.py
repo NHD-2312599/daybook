@@ -408,7 +408,21 @@ def layout_calendar(occurrences: dict, start_hour: int = 7, end_hour: int = 24):
 
 
 @app.get("/")
+@app.get("/calendar")
+@app.get("/statistics")
+@app.get("/reflections")
+@app.get("/goals")
+@app.get("/history")
 def dashboard():
+    page = request.path.strip("/") or "overview"
+    page_title = {
+        "overview": "Tổng quan",
+        "calendar": "Lịch",
+        "statistics": "Thống kê",
+        "reflections": "Tổng kết",
+        "goals": "Mục tiêu",
+        "history": "Lịch sử",
+    }[page]
     now = local_now()
     today = now.date()
     period = request.args.get("period", "week")
@@ -497,6 +511,8 @@ def dashboard():
     return render_template(
         "dashboard.html",
         period=period,
+        page=page,
+        page_title=page_title,
         category_filter=category_filter,
         category_labels=CATEGORY_LABELS,
         stats_period=stats_period,

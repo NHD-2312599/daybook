@@ -216,6 +216,7 @@ function addHistoryEntry(container, title, range, fields) {
 function renderHistory(data) {
   const reflectionList = document.querySelector('[data-history-list="reflections"]');
   const goalList = document.querySelector('[data-history-list="goals"]');
+  if (!reflectionList || !goalList) return;
   reflectionList.replaceChildren();
   goalList.replaceChildren();
   const periodNames = { week: 'Tổng kết tuần', month: 'Tổng kết tháng', quarter: 'Mục tiêu quý' };
@@ -393,7 +394,7 @@ form?.addEventListener('submit', async (event) => {
     const newCategory = form.elements.category.value;
     const currentFilter = form.dataset.categoryFilter;
     const nextFilter = currentFilter === 'all' || currentFilter === newCategory ? currentFilter : newCategory;
-    window.location.href = `/?period=${form.dataset.period}&date=${form.elements.event_date.value}&category=${nextFilter}`;
+    window.location.href = `/calendar?period=${form.dataset.period}&date=${form.elements.event_date.value}&category=${nextFilter}`;
   } catch (error) {
     errorBox.textContent = 'Không kết nối được máy chủ. Vui lòng thử lưu lại.';
   } finally {
