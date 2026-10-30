@@ -3,15 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f6f5f1">
+  <meta name="theme-color" content="#343D33">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
   <title>{% block title %}To-Do Dashboard{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='20261030-pages2') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='20261031-notifications') }}">
 </head>
 <body>
   {% block body %}{% endblock %}
-  <script src="{{ url_for('static', filename='js/app.js', v='20261030-pages2') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js', v='20261031-notifications') }}" defer></script>
 </body>
 </html>
+
 
 
 

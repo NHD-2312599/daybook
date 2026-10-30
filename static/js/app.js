@@ -90,6 +90,165 @@ function toast(message) {
   setTimeout(() => el.remove(), 2200);
 }
 
+const appDialogs = [...document.querySelectorAll('.app-dialog')];
+document.querySelectorAll('[data-open-dialog]').forEach((button) => button.addEventListener('click', () => {
+  const target = document.getElementById(button.dataset.openDialog);
+  if (!target) return;
+  appDialogs.filter((item) => item.open).forEach((item) => item.close());
+  target.showModal();
+}));
+document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => button.closest('dialog')?.close()));
+appDialogs.forEach((item) => item.addEventListener('click', (event) => {
+  if (event.target === item) item.close();
+}));
+
+const profileStorageKey = 'daybook_profile';
+const profileForm = document.querySelector('#profileForm');
+const profileData = (() => {
+  try { return JSON.parse(localStorage.getItem(profileStorageKey) || '{}'); } catch { return {}; }
+})();
+function renderProfile() {
+  const name = profileData.name || 'Đức';
+  const subtitle = profileData.subtitle || 'Kế hoạch cá nhân';
+  document.querySelectorAll('.profile-name').forEach((el) => { el.textContent = name; });
+  document.querySelectorAll('.profile-subtitle').forEach((el) => { el.textContent = subtitle; });
+  document.querySelectorAll('.profile-avatar,.profile-trigger').forEach((el) => { el.textContent = name.trim().charAt(0).toLocaleUpperCase('vi-VN') || 'Đ'; });
+  if (profileForm) {
+    profileForm.elements.name.value = name;
+    profileForm.elements.subtitle.value = subtitle;
+  }
+}
+renderProfile();
+profileForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  profileData.name = profileForm.elements.name.value.trim() || 'Đức';
+  profileData.subtitle = profileForm.elements.subtitle.value.trim() || 'Kế hoạch cá nhân';
+  localStorage.setItem(profileStorageKey, JSON.stringify(profileData));
+  renderProfile();
+  document.querySelector('#profileDialog').close();
+  toast('Đã lưu hồ sơ');
+});
+document.querySelector('#logoutButton')?.addEventListener('click', () => {
+  toast('Ứng dụng chưa có tài khoản đăng nhập để đăng xuất.');
+});
+const languageSelect = document.querySelector('#languageSelect');
+if (languageSelect) {
+  languageSelect.value = localStorage.getItem('daybook_language') || 'vi';
+  languageSelect.addEventListener('change', () => {
+    localStorage.setItem('daybook_language', languageSelect.value);
+    document.documentElement.lang = languageSelect.value;
+  });
+}
+
+const notificationList = document.querySelector('#notificationList');
+const notificationButton = document.querySelector('.notification-trigger');
+const notificationCount = document.querySelector('.notification-count');
+const notificationStoreKey = 'daybook_notifications';
+const localDateParts = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+}).formatToParts(new Date()).reduce((parts, item) => (parts[item.type] = item.value, parts), {});
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+function getStoredNotifications() {
+  try {
+    const value = JSON.parse(localStorage.getItem(notificationStoreKey) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch { return []; }
+}
+function refreshNotifications() {
+  if (!notificationList) return;
+  const parts = localDateParts();
+  const today = `${parts.year}-${parts.month}-${parts.day}`;
+  const yesterday = new Date(`${today}T12:00:00+07:00`);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(yesterday);
+  const events = JSON.parse(document.querySelector('#notification-data')?.textContent || '[]');
+  const previousDay = localStorage.getItem('daybook_last_active_date');
+  const candidates = [{
+    id: 'update:1.0.0', kind: 'update', title: 'Cập nhật mới',
+    body: 'Daybook vừa có thêm thông báo, hồ sơ thông tin và cài đặt.', href: '/', date: today,
+  }];
+  if (previousDay && previousDay !== today) candidates.push({
+    id: `daychange:${today}`, kind: 'kindness', title: 'Bạn đã có một ngày vất vả rồi',
+    body: 'Hãy tự hào về những gì bạn đã cố gắng. Chúc bạn bắt đầu ngày mới thật nhẹ nhàng.', href: '/reflections', date: today,
+  });
+  localStorage.setItem('daybook_last_active_date', today);
+
+  const todayDate = new Date(`${today}T12:00:00+07:00`);
+  if (todayDate.getDay() === 0) candidates.push({
+    id: `weekly:${today}`, kind: 'review', title: 'Cùng nhìn lại tuần vừa qua',
+    body: 'Chủ nhật là lúc dành ít phút ghi lại điều đáng nhớ trong tuần.', href: '/reflections', review: 'week', date: today,
+  });
+  const nextDay = new Date(todayDate); nextDay.setDate(nextDay.getDate() + 1);
+  if (nextDay.getMonth() !== todayDate.getMonth()) candidates.push({
+    id: `monthly:${today}`, kind: 'review', title: 'Cùng nhìn lại tháng vừa qua',
+    body: 'Tháng sắp khép lại. Hãy dành thời gian nhìn lại những điều đã qua.', href: '/reflections', review: 'month', date: today,
+  });
+
+  const timeNow = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
+  const todayEvents = events.filter((event) => event.date === today && event.status === 'planned');
+  const nextEvent = todayEvents.find((event) => event.start_time.slice(0, 5) >= timeNow) || events.find((event) => event.date > today && event.status === 'planned');
+  if (nextEvent) {
+    const dateLabel = nextEvent.date === today ? 'Hôm nay' : new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit' }).format(new Date(`${nextEvent.date}T12:00:00+07:00`));
+    candidates.push({ id: `event:${nextEvent.date}:${nextEvent.start_time}:${nextEvent.title}`, kind: 'event', title: `Sự kiện tiếp theo: ${nextEvent.title}`, body: `${dateLabel} lúc ${nextEvent.start_time.slice(0, 5)}`, href: '/calendar', date: today });
+  }
+  events.filter((event) => event.status === 'planned' && !event.completed).slice(0, 3).forEach((event) => candidates.push({
+    id: `task-event:${event.date}:${event.title}`, kind: 'task', title: `Cần hoàn thành: ${event.title}`,
+    body: event.date === today ? 'Sự kiện trong hôm nay' : `Ngày ${event.date}`, href: '/calendar', date: today,
+  }));
+  events.forEach((event) => {
+    const remaining = event.missions.filter((mission) => !mission.completed);
+    remaining.slice(0, 2).forEach((mission) => candidates.push({
+      id: `task:${event.date}:${event.title}:${mission.title}`, kind: 'task', title: `Việc cần hoàn thành: ${mission.title}`,
+      body: `${event.title} · ${event.date === today ? 'Hôm nay' : event.date}`, href: '/calendar', date: today,
+    }));
+  });
+
+  const old = getStoredNotifications();
+  const oldById = new Map(old.map((item) => [item.id, item]));
+  const dynamicKinds = new Set(['event', 'task']);
+  const persistent = old.filter((item) => !dynamicKinds.has(item.kind));
+  const merged = [...persistent];
+  candidates.forEach((item) => {
+    const prior = oldById.get(item.id);
+    merged.push({ ...item, read: prior?.read || false });
+  });
+  const cutoff = new Date(todayDate); cutoff.setDate(cutoff.getDate() - 60);
+  const cutoffKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(cutoff);
+  const fresh = merged.filter((item) => item.date >= cutoffKey).slice(-100);
+  localStorage.setItem(notificationStoreKey, JSON.stringify(fresh));
+  const unreadCount = fresh.filter((item) => !item.read).length;
+  notificationCount.hidden = unreadCount === 0;
+  notificationCount.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+  notificationButton?.setAttribute('aria-label', unreadCount ? `Thông báo, ${unreadCount} chưa đọc` : 'Thông báo');
+  notificationList.innerHTML = fresh.length ? fresh.slice().reverse().map((item) => `
+    <a class="notification-item${item.read ? ' is-read' : ''}" href="${escapeHTML(item.href)}"${item.review ? ` data-review="${item.review}"` : ''} data-notification-id="${escapeHTML(item.id)}">
+      <i class="notification-dot notification-${escapeHTML(item.kind)}"></i><span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.body)}</small></span>
+    </a>`).join('') : '<p class="notification-empty">Bạn chưa có thông báo mới.</p>';
+}
+refreshNotifications();
+window.setInterval(refreshNotifications, 60000);
+notificationList?.addEventListener('click', (event) => {
+  const link = event.target.closest('[data-notification-id]');
+  if (!link) return;
+  const stored = getStoredNotifications().map((item) => item.id === link.dataset.notificationId ? { ...item, read: true } : item);
+  localStorage.setItem(notificationStoreKey, JSON.stringify(stored));
+  const review = link.dataset.review;
+  if (review) sessionStorage.setItem('daybook_open_review', review);
+});
+document.querySelector('#clearNotifications')?.addEventListener('click', () => {
+  const updated = getStoredNotifications().map((item) => ({ ...item, read: true }));
+  localStorage.setItem(notificationStoreKey, JSON.stringify(updated));
+  refreshNotifications();
+  toast('Đã đánh dấu thông báo đã đọc');
+});
+const requestedReview = sessionStorage.getItem('daybook_open_review');
+if (requestedReview && window.location.pathname === '/reflections') {
+  sessionStorage.removeItem('daybook_open_review');
+  document.querySelector(`[data-reflection-tab="${requestedReview}"]`)?.click();
+}
+
 function syncRepeatUntilField() {
   const isRecurring = form.elements.repeat_rule.value !== 'none';
   const isForever = form.elements.repeat_forever.checked;

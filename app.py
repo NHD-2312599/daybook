@@ -470,6 +470,23 @@ def dashboard():
     done = sum(sum(item["completed"] and item["occurrence_status"] == "planned" for item in items) for items in occurrences.values())
     today_key = today.isoformat()
     today_items = get_occurrences(today, today, selected_category)[today_key]
+    reminder_occurrences = get_occurrences(today, today + timedelta(days=7))
+    notification_events = [
+        {
+            "title": item["title"],
+            "date": day_key,
+            "start_time": item["start_time"],
+            "completed": item["completed"],
+            "status": item["occurrence_status"],
+            "missions": [
+                {"title": mission["title"], "completed": mission["completed"]}
+                for mission in item["missions"]
+            ],
+        }
+        for day_key, day_items in reminder_occurrences.items()
+        for item in day_items
+        if item["occurrence_status"] == "planned"
+    ]
     today_total = sum(item["occurrence_status"] not in {"cancelled", "rescheduled"} for item in today_items)
     today_done = sum(item["completed"] and item["occurrence_status"] == "planned" for item in today_items)
     now_minute = now.hour * 60 + now.minute
@@ -533,6 +550,7 @@ def dashboard():
         total=total,
         done=done,
         today_items=today_items,
+        notification_events=notification_events,
         today_done=today_done,
         today_total=today_total,
         now_calendar_top=now_calendar_top,
