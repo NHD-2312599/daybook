@@ -346,18 +346,26 @@ form?.addEventListener('submit', async (event) => {
   const payload = Object.fromEntries(new FormData(form));
   payload.repeat_days = [...form.querySelectorAll('[name="repeat_days"]:checked')].map((checkbox) => Number(checkbox.value));
   const eventId = form.elements.event_id.value;
-  const response = await fetch(eventId ? `/api/events/${eventId}` : '/api/events', {
-    method: eventId ? 'PUT' : 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json();
-  if (!response.ok) { errorBox.textContent = result.error || 'Không thể lưu sự kiện.'; return; }
-  dialog.close();
-  const newCategory = form.elements.category.value;
-  const currentFilter = form.dataset.categoryFilter;
-  const nextFilter = currentFilter === 'all' || currentFilter === newCategory ? currentFilter : newCategory;
-  window.location.href = `/?period=${form.dataset.period}&date=${form.elements.event_date.value}&category=${nextFilter}`;
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    const response = await fetch(eventId ? `/api/events/${eventId}` : '/api/events', {
+      method: eventId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok) { errorBox.textContent = result.error || 'Không thể lưu sự kiện.'; return; }
+    dialog.close();
+    const newCategory = form.elements.category.value;
+    const currentFilter = form.dataset.categoryFilter;
+    const nextFilter = currentFilter === 'all' || currentFilter === newCategory ? currentFilter : newCategory;
+    window.location.href = `/?period=${form.dataset.period}&date=${form.elements.event_date.value}&category=${nextFilter}`;
+  } catch (error) {
+    errorBox.textContent = 'Không kết nối được máy chủ. Vui lòng thử lưu lại.';
+  } finally {
+    submitButton.disabled = false;
+  }
 });
 
 document.querySelectorAll('.edit-button').forEach((button) => button.addEventListener('click', async () => {

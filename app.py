@@ -64,6 +64,27 @@ class PostgresConnection:
     def execute(self, query, params=()):
         return self.connection.execute(query.replace("?", "%s"), params)
 
+    def cursor(self):
+        return PostgresCursor(self.connection.cursor())
+
+
+class PostgresCursor:
+    """Cursor adapter that translates SQLite-style placeholders for psycopg."""
+
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, query, params=()):
+        self.cursor.execute(query.replace("?", "%s"), params)
+        return self
+
+    def fetchone(self):
+        return self.cursor.fetchone()
+
+    @property
+    def rowcount(self):
+        return self.cursor.rowcount
+
 
 def init_db():
     with connect_db() as db:
