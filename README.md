@@ -12,6 +12,22 @@
 
 Dữ liệu local được lưu trong `instance/todo.db`.
 
+## Đăng nhập
+
+Ứng dụng yêu cầu đăng nhập bằng một tài khoản cấu hình sẵn. Không có chức năng tự đăng ký.
+
+- `AUTH_USERNAME`: tên tài khoản.
+- `AUTH_PASSWORD_HASH`: mật khẩu đã băm bằng Werkzeug; không lưu mật khẩu rõ trong mã nguồn.
+- `SECRET_KEY`: khóa bí mật dùng để ký cookie phiên đăng nhập.
+
+Tạo hash mật khẩu local bằng Python:
+
+```sh
+python -c "from getpass import getpass; from werkzeug.security import generate_password_hash; print(generate_password_hash(getpass()))"
+```
+
+Thêm ba biến này vào môi trường chạy ứng dụng. Trên Vercel, đặt chúng trong Project Settings → Environment Variables rồi redeploy. Phiên đăng nhập dùng cookie HttpOnly, SameSite=Lax và Secure trên Vercel.
+
 ## Deploy lên Vercel với Neon
 
 1. Kết nối Neon với project Vercel và bật biến `DATABASE_URL` (hoặc `DATABASE_URL_UNPOOLED`) cho Production và Preview.

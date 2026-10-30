@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import json
+import hmac
+import secrets
 import sqlite3
 from contextlib import contextmanager
 from calendar import Calendar, monthrange
@@ -10,7 +12,8 @@ from zoneinfo import ZoneInfo
 
 from urllib.parse import quote, urlparse
 
-from flask import Flask, abort, jsonify, render_template, request
+from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash
 
 DATABASE_URL = (
     os.environ.get("DATABASE_URL")
@@ -29,6 +32,15 @@ CATEGORY_LABELS = {
 }
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("VERCEL") == "1",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+)
+AUTH_USERNAME = os.environ.get("AUTH_USERNAME", "")
+AUTH_PASSWORD_HASH = os.environ.get("AUTH_PASSWORD_HASH", "")
 LOCAL_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
@@ -38,6 +50,71 @@ def local_now():
 
 def local_today():
     return local_now().date()
+
+
+@app.before_request
+def require_login():
+    if request.endpoint in {"login", "static", "health"}:
+        return None
+    if session.get("authenticated") is True:
+        return None
+    if request.path.startswith("/api/"):
+        return jsonify(error="Vui lòng đăng nhập để tiếp tục."), 401
+    return redirect(url_for("login", next=request.full_path.rstrip("?")))
+
+
+@app.after_request
+def prevent_private_page_caching(response):
+    if request.endpoint not in {"static", "health"}:
+        response.headers["Cache-Control"] = "no-store, private"
+    return response
+
+
+def safe_next_url(target):
+    parsed = urlparse(target or "")
+    if target and target.startswith("/") and not target.startswith("//") and not parsed.netloc:
+        return target
+    return "/"
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    next_url = safe_next_url(request.values.get("next"))
+    if session.get("authenticated") is True and request.method == "GET":
+        return redirect(next_url)
+    if request.method == "POST":
+        submitted_token = request.form.get("csrf_token", "")
+        expected_token = session.get("_csrf_token", "")
+        if not expected_token or not hmac.compare_digest(submitted_token, expected_token):
+            abort(400)
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        valid_password = False
+        if AUTH_PASSWORD_HASH:
+            try:
+                valid_password = check_password_hash(AUTH_PASSWORD_HASH, password)
+            except (ValueError, TypeError):
+                valid_password = False
+        if AUTH_USERNAME and hmac.compare_digest(username.casefold(), AUTH_USERNAME.casefold()) and valid_password:
+            session.clear()
+            session.permanent = True
+            session["authenticated"] = True
+            session["username"] = AUTH_USERNAME
+            session["_csrf_token"] = secrets.token_urlsafe(32)
+            return redirect(next_url)
+        return render_template("login.html", csrf_token=expected_token, next_url=next_url, login_error="Tên đăng nhập hoặc mật khẩu chưa đúng."), 401
+    csrf_token = session.setdefault("_csrf_token", secrets.token_urlsafe(32))
+    return render_template("login.html", csrf_token=csrf_token, next_url=next_url, login_error="")
+
+
+@app.post("/logout")
+def logout():
+    submitted_token = request.form.get("csrf_token", "")
+    expected_token = session.get("_csrf_token", "")
+    if not expected_token or not hmac.compare_digest(submitted_token, expected_token):
+        abort(400)
+    session.clear()
+    return redirect(url_for("login", logged_out="1"))
 
 
 @contextmanager

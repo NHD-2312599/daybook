@@ -129,7 +129,16 @@ profileForm?.addEventListener('submit', (event) => {
   toast('Đã lưu hồ sơ');
 });
 document.querySelector('#logoutButton')?.addEventListener('click', () => {
-  toast('Ứng dụng chưa có tài khoản đăng nhập để đăng xuất.');
+  const logoutForm = document.createElement('form');
+  logoutForm.method = 'post';
+  logoutForm.action = '/logout';
+  const csrfInput = document.createElement('input');
+  csrfInput.type = 'hidden';
+  csrfInput.name = 'csrf_token';
+  csrfInput.value = document.querySelector('#logoutButton').dataset.csrfToken;
+  logoutForm.append(csrfInput);
+  document.body.append(logoutForm);
+  logoutForm.submit();
 });
 const languageSelect = document.querySelector('#languageSelect');
 if (languageSelect) {
