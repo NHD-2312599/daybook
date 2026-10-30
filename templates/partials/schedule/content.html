@@ -1,0 +1,13 @@
+{% if detail_view == 'board' %}
+  {% include "partials/schedule/board.html" %}
+{% elif detail_view == 'timeline' %}
+  {% if period in ['week', 'day'] %}
+    {% include "partials/schedule/timeline_grid.html" %}
+  {% else %}
+    {% include "partials/schedule/timeline_list.html" %}
+  {% endif %}
+{% elif detail_view == 'list' %}
+  {% include "partials/schedule/list.html" %}
+{% else %}
+  {% include "partials/schedule/categories.html" %}
+{% endif %}

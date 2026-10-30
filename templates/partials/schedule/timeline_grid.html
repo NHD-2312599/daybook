@@ -1,0 +1,30 @@
+          <div class="calendar-scroll">
+            <div class="calendar-grid" style="--day-count: {{ occurrences|length }}">
+              <div class="calendar-corner">MỐC GIỜ</div>
+              {% for key,items in occurrences.items() %}
+              <div class="calendar-day-head {% if key == today.isoformat() %}is-today{% endif %}">
+                <span>{{ ['THỨ 2','THỨ 3','THỨ 4','THỨ 5','THỨ 6','THỨ 7','CHỦ NHẬT'][loop.index0 % 7] if period == 'week' else 'LỊCH NGÀY' }}</span>
+                <strong>{{ key[8:10] }}</strong>
+                {% if key == today.isoformat() %}<i>HÔM NAY</i>{% endif %}
+                <button class="calendar-add" data-open-modal data-date="{{ key }}" aria-label="Thêm sự kiện ngày {{ key }}">＋</button>
+              </div>
+              {% endfor %}
+              <div class="calendar-time-axis">
+                {% for hour in range(7, 25) %}<span style="top: {{ (hour - 7) * 60 - 7 }}px">{{ '%02d:00'|format(hour) }}</span>{% endfor %}
+              </div>
+              {% for key,items in calendar_occurrences.items() %}
+              <div class="calendar-day-track {% if key == today.isoformat() %}is-today{% endif %}">
+                {% for hour in range(18) %}<i class="calendar-hour-line" style="top: {{ hour * 60 }}px"></i>{% endfor %}
+                {% for event in items %}
+                <article class="event-item calendar-event priority-{{ event.priority }} category-{{ event.category }} {% if event.calendar_width < 100 %}is-overlapping{% endif %} {% if event.end_time <= event.start_time %}is-overnight{% endif %} {% if event.completed %}is-done{% endif %} {% if event.occurrence_status == 'cancelled' %}is-cancelled{% elif event.occurrence_status == 'rescheduled' %}is-rescheduled{% endif %}" data-event-id="{{ event.id }}" data-occurrence="{{ event.occurrence_date }}" data-occurrence-status="{{ event.occurrence_status }}" data-status-note="{{ event.status_note }}" style="top: {{ event.calendar_top }}px; height: {{ event.calendar_height }}px; left: calc({{ event.calendar_left }}% + 3px); width: calc({{ event.calendar_width }}% - 6px)">
+                  <button class="check-button" aria-label="Đánh dấu hoàn thành" {% if event.occurrence_status != 'planned' %}disabled{% endif %}>{% if event.completed %}✓{% endif %}</button>
+                  <div class="event-copy"><strong title="{{ event.title }}">{{ event.title }}</strong><span>{{ event.start_time }} – {{ event.end_time }}{% if event.end_time <= event.start_time %}{% if event.calendar_width < 100 %} (+1 ngày){% else %} (ngày hôm sau){% endif %}{% endif %}</span>{% if event.occurrence_status != 'planned' %}<small class="occurrence-status-badge">{{ 'Đã hủy' if event.occurrence_status == 'cancelled' else 'Đổi lịch' }}</small>{% endif %}{% if event.missions %}<button type="button" class="mission-progress mission-progress-toggle" {% if event.occurrence_status != 'planned' %}disabled{% endif %} data-mission-toggle="{{ (event.missions|rejectattr('completed')|first).index if event.missions|rejectattr('completed')|list else event.missions[0].index }}">{{ event.missions|selectattr('completed')|list|length }}/{{ event.missions|length }} mission</button>{% endif %}<small class="category-tag category-{{ event.category }}">{{ category_labels[event.category] }}</small>{% if event.notes %}<small>{{ event.notes }}</small>{% endif %}{% if event.missions %}<div class="mission-list">{% for mission in event.missions %}<label class="mission-item {% if mission.completed %}is-done{% endif %}"><input type="checkbox" class="mission-check" {% if event.occurrence_status != 'planned' %}disabled{% endif %} data-mission-index="{{ mission.index }}" {% if mission.completed %}checked{% endif %}><span>{{ mission.title }}</span></label>{% endfor %}</div>{% endif %}{% if event.zoom_link %}<a class="meeting-link" href="{{ event.zoom_link }}" target="_blank" rel="noreferrer"><span>Vào Zoom</span><span class="zoom-link-arrow" aria-hidden="true">↗</span></a>{% endif %}</div>
+                  <button class="edit-button" type="button" title="Chỉnh sửa sự kiện" aria-label="Chỉnh sửa sự kiện">✎</button>
+                  <button class="delete-button" title="Xóa sự kiện" aria-label="Xóa sự kiện">×</button>
+                </article>
+                {% endfor %}
+                {% if key == today.isoformat() and now_calendar_top is not none %}<div class="calendar-now" style="top: {{ now_calendar_top }}px"><i></i></div>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>

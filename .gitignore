@@ -4,3 +4,5 @@ data/*.json
 .env
 .env.*
 !.env.example
+
+instance/*.db

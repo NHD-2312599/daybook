@@ -1,0 +1,24 @@
+        <div class="kanban-board">
+          {% for key,title in [('planned','Theo kế hoạch'),('completed','Hoàn thành'),('rescheduled','Đổi lịch'),('cancelled','Đã hủy')] %}
+          <section class="kanban-lane lane-{{ key }}">
+            <header class="kanban-lane-header"><div><span class="lane-indicator"></span><h3>{{ title }}</h3></div><span class="lane-count">{{ board_groups[key]|length }}</span></header>
+            <div class="kanban-lane-cards">
+              {% for event in board_groups[key] %}
+              <article class="event-item board-event priority-{{ event.priority }} category-{{ event.category }} {% if event.completed %}is-done{% endif %} {% if event.occurrence_status == 'cancelled' %}is-cancelled{% elif event.occurrence_status == 'rescheduled' %}is-rescheduled{% endif %}" data-event-id="{{ event.id }}" data-occurrence="{{ event.occurrence_date }}" data-occurrence-status="{{ event.occurrence_status }}" data-status-note="{{ event.status_note }}">
+                <button class="check-button" aria-label="Đánh dấu hoàn thành" {% if event.occurrence_status != 'planned' %}disabled{% endif %}>{% if event.completed %}✓{% endif %}</button>
+                <div class="event-copy">
+                  <div class="board-card-meta"><small class="category-tag category-{{ event.category }}">{{ category_labels[event.category] }}</small><span class="priority-label priority-{{ event.priority }}" aria-label="{{ {'high':'Ưu tiên cao','medium':'Bình thường','low':'Có thể sau'}[event.priority] }}" title="{{ {'high':'Ưu tiên cao','medium':'Bình thường','low':'Có thể sau'}[event.priority] }}"><i></i></span></div>
+                  <strong>{{ event.title }}</strong>
+                  <span class="board-event-time">{{ event.day_key }} · {{ event.start_time }}–{{ event.end_time }}{% if event.end_time <= event.start_time %} (+1 ngày){% endif %}</span>
+                  {% if event.occurrence_status != 'planned' %}<small class="occurrence-status-badge">{{ 'Đã hủy' if event.occurrence_status == 'cancelled' else 'Đổi lịch' }}{% if event.status_note %}: {{ event.status_note }}{% endif %}</small>{% endif %}
+                  {% if event.notes %}<p class="board-event-note">{{ event.notes }}</p>{% endif %}
+                  {% if event.missions %}<button type="button" class="mission-progress mission-progress-toggle" {% if event.occurrence_status != 'planned' %}disabled{% endif %} data-mission-toggle="{{ (event.missions|rejectattr('completed')|first).index if event.missions|rejectattr('completed')|list else event.missions[0].index }}">{{ event.missions|selectattr('completed')|list|length }}/{{ event.missions|length }} mission hoàn thành</button><div class="mission-list">{% for mission in event.missions %}<label class="mission-item {% if mission.completed %}is-done{% endif %}"><input type="checkbox" class="mission-check" {% if event.occurrence_status != 'planned' %}disabled{% endif %} data-mission-index="{{ mission.index }}" {% if mission.completed %}checked{% endif %}><span>{{ mission.title }}</span></label>{% endfor %}</div>{% endif %}
+                  {% if event.zoom_link %}<a class="meeting-link" href="{{ event.zoom_link }}" target="_blank" rel="noreferrer"><span>Vào Zoom</span><span class="zoom-link-arrow" aria-hidden="true">↗</span></a>{% endif %}
+                  <div class="board-card-actions"><button class="edit-button" type="button" title="Chỉnh sửa sự kiện" aria-label="Chỉnh sửa sự kiện">✎</button><button class="delete-button" type="button" title="Xóa sự kiện" aria-label="Xóa sự kiện">×</button></div>
+                </div>
+              </article>
+              {% else %}<p class="kanban-empty">Chưa có sự kiện</p>{% endfor %}
+            </div>
+          </section>
+          {% endfor %}
+        </div>

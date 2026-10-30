@@ -1,0 +1,29 @@
+      <section class="reflection-section" id="reflection">
+        <div class="reflection-heading"><div><p class="eyebrow">DỪNG LẠI · NHÌN LẠI · TIẾN TỚI</p><h2>Tổng kết & mục tiêu</h2><p class="reflection-intro">Dành một chút thời gian để ghi nhận hành trình của bạn.</p></div></div>
+        <div class="reflection-layout">
+          <article class="reflection-card">
+            <div class="reflection-card-heading"><div><span class="reflection-kicker">NHÌN LẠI</span><h3>Tổng kết của bạn</h3></div><div class="reflection-tabs" role="tablist" aria-label="Chọn kỳ tổng kết"><button type="button" class="reflection-tab is-active" data-reflection-tab="week" role="tab" aria-selected="true">Tuần</button><button type="button" class="reflection-tab" data-reflection-tab="month" role="tab" aria-selected="false">Tháng</button></div></div>
+            {% for scope in ['week','month'] %}{% set reflection = reflections.get(scope, {}) %}{% set period_start = review_periods[scope] %}
+            <form class="reflection-form{% if scope != 'week' %} is-hidden{% endif %}" data-reflection-form="{{ scope }}" data-period-start="{{ period_start.isoformat() }}">
+              <p class="reflection-period">{% if scope == 'week' %}{{ period_start.strftime('%d/%m') }} – {{ review_week_end.strftime('%d/%m/%Y') }}{% else %}{{ period_start.strftime('%m/%Y') }}{% endif %}</p>
+              <label class="reflection-field"><span>Điều gì khiến bạn tự hào?</span><small>Ghi nhận một việc bạn đã làm tốt, dù nhỏ.</small><textarea name="proud" maxlength="4000" rows="2" placeholder="Tuần này, mình tự hào vì…">{{ reflection.get('proud', '') }}</textarea></label>
+              <label class="reflection-field"><span>Bạn muốn cải thiện điều gì?</span><small>Một thói quen, suy nghĩ hoặc cách phản ứng bạn muốn điều chỉnh.</small><textarea name="improve" maxlength="4000" rows="2" placeholder="Lần tới, mình muốn thử…">{{ reflection.get('improve', '') }}</textarea></label>
+              <label class="reflection-field"><span>Bài học bạn nhận ra</span><small>Điều gì giúp bạn hiểu thêm về bản thân hoặc cuộc sống?</small><textarea name="lesson" maxlength="4000" rows="2" placeholder="Mình nhận ra rằng…">{{ reflection.get('lesson', '') }}</textarea></label>
+              <label class="reflection-field"><span>Khoảnh khắc muốn lưu giữ</span><small>Một người, một niềm vui hoặc một khoảnh khắc đáng nhớ.</small><textarea name="memory" maxlength="4000" rows="2" placeholder="Mình muốn nhớ về…">{{ reflection.get('memory', '') }}</textarea></label>
+              {% if scope == 'month' %}<label class="reflection-field"><span>Mô thức nào lặp lại trong tháng?</span><small>Điều gì đang tiếp thêm năng lượng, hoặc khiến bạn chững lại?</small><textarea name="pattern" maxlength="4000" rows="2" placeholder="Mình nhận thấy…">{{ reflection.get('pattern', '') }}</textarea></label>{% endif %}
+              <div class="reflection-form-footer"><button class="primary-button" type="submit">Lưu tổng kết</button><span class="reflection-save-status" aria-live="polite"></span></div>
+            </form>{% endfor %}
+          </article>
+          <article class="reflection-card goals-card">
+            <div class="reflection-card-heading"><div><span class="reflection-kicker">HƯỚNG TỚI</span><h3>Mục tiêu sắp tới</h3></div></div>
+            <div class="goal-tabs" role="tablist" aria-label="Chọn thời hạn mục tiêu">{% for scope,label in [('week','Tuần'),('month','Tháng'),('quarter','Quý')] %}<button type="button" class="goal-tab{% if scope == 'week' %} is-active{% endif %}" data-goal-tab="{{ scope }}" role="tab" aria-selected="{{ 'true' if scope == 'week' else 'false' }}">{{ label }}</button>{% endfor %}</div>
+            {% for scope,label in [('week','Tuần'),('month','Tháng'),('quarter','Quý')] %}{% set bounds = goal_periods[scope] %}{% set goal = goals.get(scope, {}) %}
+            <form class="goal-form{% if scope != 'week' %} is-hidden{% endif %}" data-goal-form="{{ scope }}" data-period-start="{{ bounds[0].isoformat() }}" data-period-end="{{ bounds[1].isoformat() }}">
+              <p class="reflection-period">{{ bounds[0].strftime('%d/%m') }} – {{ bounds[1].strftime('%d/%m/%Y') }}</p>
+              <label class="reflection-field"><span>Điều quan trọng nhất bạn muốn làm?</span><textarea name="goal_text" maxlength="500" rows="2" required placeholder="Ví dụ: Hoàn thành bản đề xuất dự án">{{ goal.get('goal_text', '') }}</textarea></label>
+              <label class="reflection-field"><span>Vì sao điều này quan trọng với bạn?</span><textarea name="reason" maxlength="1000" rows="2" placeholder="Mình muốn…">{{ goal.get('reason', '') }}</textarea></label>
+              <label class="reflection-field"><span>Bước nhỏ đầu tiên là gì?</span><textarea name="first_step" maxlength="500" rows="2" placeholder="Mình sẽ bắt đầu bằng…">{{ goal.get('first_step', '') }}</textarea></label>
+              <div class="reflection-form-footer"><button class="primary-button" type="submit">Lưu mục tiêu</button><span class="goal-save-status" aria-live="polite"></span></div>
+            </form>{% endfor %}
+          </article>
+        </div>

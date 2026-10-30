@@ -1,52 +1,21 @@
-# ĐL-T4 Dashboard
+# To-Do Dashboard
 
-Ứng dụng quản lý điểm danh tổ ĐL-T4
+Ứng dụng quản lý lịch trình cá nhân chạy bằng Python Flask, giao diện tiếng Việt và lưu dữ liệu cục bộ bằng SQLite.
 
-## Tính năng
-- Điểm danh 4 mục: **Chép NLSS**, **Nghe Mana**, **Đi Chakki**, **Jondo**
-- Tự lưu nháp khi cập nhật trong ngày; có thể tick/bỏ tick và chốt kết quả chính thức cuối ngày
-- Cột ghi chú lý do chưa làm
-- Suy ngẫm Kinh thánh (copy gửi GYJN)
-- Báo cáo tuần của Leader
-- Tổng hợp lịch rảnh theo tuần: mỗi thành viên tick ngày/khung giờ có thể gặp, hệ thống xếp hạng giờ trùng nhau
-- Thống kê tổng quan + xuất ảnh PNG
-- Lưu JSON cục bộ khi chạy local hoặc PostgreSQL khi deploy
+## Chạy ứng dụng
 
-## Cách chạy
+1. Cài Python 3.10 trở lên.
+2. (Khuyến nghị) Tạo môi trường ảo: `python -m venv .venv` rồi kích hoạt môi trường.
+3. Cài thư viện: `pip install -r requirements.txt`.
+4. Khởi chạy: `python app.py`.
+5. Mở địa chỉ `http://127.0.0.1:5000` trong trình duyệt.
 
-```bash
-# Cài Flask (nếu chưa có)
-pip install flask
-# hoặc
-sudo apt install python3-flask
+Dữ liệu được lưu trong `instance/todo.db`. Không cần cài hoặc chạy PostgreSQL.
 
-# Chạy
-cd dl-t4-dashboard
-python3 app.py
-```
+## Chức năng hiện có
 
-Mở trình duyệt: **http://127.0.0.1:5000**
-
-## Deploy lên Vercel
-
-1. Kết nối repository GitHub này với Vercel; Vercel tự nhận diện Flask từ `app.py` và cài thư viện trong `requirements.txt`.
-2. Trong Vercel Marketplace, tạo và kết nối một PostgreSQL database (ví dụ Neon) với project. Code hỗ trợ các biến URL phổ biến của integration, kể cả biến có prefix `STORAGE_`.
-3. Nếu nhà cung cấp không tự thêm biến URL, vào **Settings → Environment Variables** và thêm:
-   - **Key:** `DATABASE_URL`
-   - **Value:** connection string PostgreSQL do nhà cung cấp cấp (giữ nguyên thông tin đăng nhập; không đưa vào GitHub)
-   - **Environments:** Production và Preview
-4. Deploy lại sau khi kết nối database/biến môi trường.
-
-App dùng PostgreSQL khi có URL như `DATABASE_URL`, `POSTGRES_URL`, `STORAGE_DATABASE_URL_UNPOOLED` hoặc `STORAGE_POSTGRES_URL_NON_POOLING`; nếu không có thì dùng file JSON cho chạy local. Không cần khai báo `PORT`.
-
-## Cấu trúc
-```
-dl-t4-dashboard/
-├── app.py              # Flask backend
-├── requirements.txt    # Thư viện Python cho Vercel
-├── templates/
-│   └── index.html      # Giao diện
-├── static/             # (dự phòng)
-├── data/               # Dữ liệu JSON local (không đưa lên GitHub)
-└── README.md
-```
+- Xem lịch theo ngày, tuần, tháng, quý và năm.
+- Tạo sự kiện với giờ bắt đầu/kết thúc, mức ưu tiên, ghi chú và lịch lặp hằng ngày/tuần/tháng.
+- Gắn sự kiện vào danh mục Công việc, Cá nhân, Sức khỏe, Học tập hoặc Khác; lọc lịch theo danh mục.
+- Đánh dấu hoàn thành riêng cho từng ngày diễn ra sự kiện lặp.
+- Xóa sự kiện và xem thống kê tiến độ trong kỳ.

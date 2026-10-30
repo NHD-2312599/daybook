@@ -1,0 +1,25 @@
+        <div style="display:grid;gap:16px;padding:18px 0 10px;">
+          {% for category, items in category_groups.items() %}
+          <div style="border:1px solid #efeee9;border-radius:10px;padding:12px;background:#faf9f6;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <strong class="category-tag category-{{ category }} category-heading">{{ category_labels.get(category, category) }}</strong>
+              <span style="font-size:10px;color:#8c877e;">{{ items|length }} sự kiện</span>
+            </div>
+            <div style="display:grid;gap:8px;">
+              {% for event in items %}
+              <article class="event-item calendar-event priority-{{ event.priority }} category-{{ event.category }} {% if event.completed %}is-done{% endif %} {% if event.occurrence_status == 'cancelled' %}is-cancelled{% elif event.occurrence_status == 'rescheduled' %}is-rescheduled{% endif %}" data-event-id="{{ event.id }}" data-occurrence="{{ event.day_key }}" data-occurrence-status="{{ event.occurrence_status }}" data-status-note="{{ event.status_note }}" style="position:relative;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;padding:8px 10px;border:1px solid #f0eee9;border-radius:8px;background:#fff;">
+                <button class="check-button" aria-label="Đánh dấu hoàn thành" {% if event.occurrence_status != 'planned' %}disabled{% endif %} style="min-width:20px;">{% if event.completed %}✓{% endif %}</button>
+                <div class="event-copy" style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+                  <strong>{{ event.title }}</strong>
+                  <span>{{ event.day_key }} – {{ event.start_time }} – {{ event.end_time }}{% if event.end_time <= event.start_time %} (ngày hôm sau){% endif %}</span>{% if event.occurrence_status != 'planned' %}<small class="occurrence-status-badge">{{ 'Đã hủy' if event.occurrence_status == 'cancelled' else 'Đổi lịch' }}</small>{% endif %}
+                  {% if event.notes %}<small>{{ event.notes }}</small>{% endif %}{% if event.missions %}<div class="mission-list">{% for mission in event.missions %}<label class="mission-item {% if mission.completed %}is-done{% endif %}"><input type="checkbox" class="mission-check" {% if event.occurrence_status != 'planned' %}disabled{% endif %} data-mission-index="{{ mission.index }}" {% if mission.completed %}checked{% endif %}><span>{{ mission.title }}</span></label>{% endfor %}</div>{% endif %}
+                  {% if event.zoom_link %}<a class="meeting-link" href="{{ event.zoom_link }}" target="_blank" rel="noreferrer"><span>Vào Zoom</span><span class="zoom-link-arrow" aria-hidden="true">↗</span></a>{% endif %}
+                </div>
+                <button class="edit-button" type="button" title="Chỉnh sửa sự kiện" aria-label="Chỉnh sửa sự kiện" style="border:0;background:none;">✎</button>
+                <button class="delete-button" title="Xóa sự kiện" aria-label="Xóa sự kiện" style="border:0;background:none;">×</button>
+              </article>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
