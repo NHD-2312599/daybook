@@ -522,6 +522,9 @@ def dashboard():
     statistics = build_statistics(stats_period, today, selected_category)
     start, end = period_bounds(anchor, period)
     occurrences = get_occurrences(start, end, selected_category)
+    ordered_day_keys = [key for key in occurrences if key >= anchor.isoformat()]
+    ordered_day_keys.extend(key for key in occurrences if key < anchor.isoformat())
+    list_occurrences = {key: occurrences[key] for key in ordered_day_keys}
     calendar_occurrences = layout_calendar(occurrences)
     month_start = anchor.replace(day=1)
     month_end = anchor.replace(day=monthrange(anchor.year, anchor.month)[1])
@@ -616,6 +619,7 @@ def dashboard():
         start=start,
         end=end,
         occurrences=occurrences,
+        list_occurrences=list_occurrences,
         calendar_occurrences=calendar_occurrences,
         detail_occurrences=detail_occurrences,
         category_groups=category_groups,
