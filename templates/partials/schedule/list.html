@@ -1,15 +1,15 @@
-        <div style="display:grid;gap:12px;padding:18px 0 10px;">
+        <div class="schedule-groups date-groups">
           {% for day_key, items in occurrences.items() %}
-          <div style="border:1px solid #efeee9;border-radius:10px;padding:12px;background:#faf9f6;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <strong style="font-size:12px;letter-spacing:.06em;color:#56534d;">{{ day_key }}</strong>
-              <span style="font-size:10px;color:#8c877e;">{{ items|length }} sự kiện</span>
+          <div class="schedule-group">
+            <div class="schedule-group-heading">
+              <strong>{{ day_key }}</strong>
+              <span class="schedule-group-count">{{ items|length }} sự kiện</span>
             </div>
             {% if items %}
-            <div style="display:grid;gap:8px;">
+            <div class="schedule-group-items">
               {% for event in items %}
-              <article class="event-item calendar-event priority-{{ event.priority }} category-{{ event.category }} {% if event.completed %}is-done{% endif %} {% if event.occurrence_status == 'cancelled' %}is-cancelled{% elif event.occurrence_status == 'rescheduled' %}is-rescheduled{% endif %}" data-event-id="{{ event.id }}" data-occurrence="{{ event.occurrence_date }}" data-occurrence-status="{{ event.occurrence_status }}" data-status-note="{{ event.status_note }}" style="position:relative;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;padding:8px 10px;border:1px solid #f0eee9;border-radius:8px;background:#fff;">
-                <button class="check-button" aria-label="Đánh dấu hoàn thành" {% if event.occurrence_status != 'planned' %}disabled{% endif %} style="min-width:20px;">{% if event.completed %}✓{% endif %}</button>
+              <article class="event-item schedule-list-event calendar-event priority-{{ event.priority }} category-{{ event.category }} {% if event.completed %}is-done{% endif %} {% if event.occurrence_status == 'cancelled' %}is-cancelled{% elif event.occurrence_status == 'rescheduled' %}is-rescheduled{% endif %}" data-event-id="{{ event.id }}" data-occurrence="{{ event.occurrence_date }}" data-occurrence-status="{{ event.occurrence_status }}" data-status-note="{{ event.status_note }}">
+                <button class="check-button" aria-label="Đánh dấu hoàn thành" {% if event.occurrence_status != 'planned' %}disabled{% endif %}>{% if event.completed %}✓{% endif %}</button>
                 <div class="event-copy" style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                   <strong>{{ event.title }}</strong>
                   <span>{{ event.start_time }} – {{ event.end_time }}{% if event.end_time <= event.start_time %} (ngày hôm sau){% endif %}</span>{% if event.occurrence_status != 'planned' %}<small class="occurrence-status-badge">{{ 'Đã hủy' if event.occurrence_status == 'cancelled' else 'Đổi lịch' }}</small>{% endif %}
@@ -23,7 +23,7 @@
               {% endfor %}
             </div>
             {% else %}
-            <small style="color:#9a978f;">Không có sự kiện</small>
+            <small class="schedule-group-empty">Không có sự kiện</small>
             {% endif %}
           </div>
           {% endfor %}

@@ -125,3 +125,32 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-ui);letter-
 /* Sign in screen. */
 .login-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,#d6e5d8 0,#f7f5ef 8px,#f7f5ef 100%)}.login-card{width:min(420px,100%);padding:34px;border:1px solid var(--line);border-radius:18px;background:#fffefa;box-shadow:0 18px 55px #343d3310}.login-brand{display:flex;align-items:center;gap:11px;margin-bottom:30px;color:var(--forest);text-decoration:none;font-size:21px;font-weight:650}.login-brand img{width:42px;height:42px;border-radius:12px}.login-brand small{display:block;margin-top:2px;color:var(--muted);font-size:9px;font-weight:400;letter-spacing:.02em}.login-card>.eyebrow{margin:0 0 7px}.login-card h1{margin:0;color:var(--forest);font-size:25px;letter-spacing:-.5px}.login-intro{margin:8px 0 20px;color:var(--muted);font-size:12px}.login-form{display:grid;gap:3px}.login-form .field-label{margin-bottom:12px}.login-form .field-label input{padding:12px;border-radius:9px}.login-form .primary-button{width:100%;min-height:42px;margin-top:2px;border-radius:9px}.login-error,.login-success{padding:10px 12px;border-radius:8px;font-size:11px}.login-error{background:#f8ece9;color:#9e554a}.login-success{background:#edf3ed;color:#58745b}.login-privacy{margin:15px 0 0;color:var(--muted);font-size:10px;text-align:center}
 @media(max-width:500px){.login-page{padding:16px}.login-card{padding:25px 21px;border-radius:15px}}
+.login-switch{margin:16px 0 0;color:#67665e;font-size:11px;text-align:center}.login-switch a{color:var(--forest);font-weight:700}.field-hint{display:block;margin-top:5px;color:var(--muted);font-size:9px}
+/* Compact grouped schedule views (category and date lists). */
+.schedule-groups{display:grid;gap:14px;padding:16px 0 20px;align-items:start}
+.category-groups{grid-template-columns:repeat(2,minmax(0,1fr))}
+.date-groups{grid-template-columns:minmax(0,1fr)}
+.schedule-group{min-width:0;padding:12px;border:1px solid #eae7df;border-radius:12px;background:#f8f7f2}
+.schedule-group-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px;padding:0 1px}
+.schedule-group-heading>strong:not(.category-tag){font-size:12px;letter-spacing:.01em;color:#4f554d}
+.schedule-group-count{flex:none;color:#929087;font-size:10px}
+.schedule-group-items{display:grid;gap:6px}
+.schedule-list-event.event-item{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr) auto auto;align-items:center;gap:9px;min-width:0;padding:8px 9px;border:1px solid #ece9e2;border-left:3px solid var(--sage);border-radius:9px;background:#fffefa;box-shadow:none}
+.schedule-list-event.calendar-event.priority-high,.schedule-list-event.calendar-event.priority-medium,.schedule-list-event.calendar-event.priority-low{background:#fffefa!important}
+.schedule-list-event.calendar-event.priority-high{border-left-color:var(--clay)!important}
+.schedule-list-event.calendar-event.priority-medium{border-left-color:var(--gold)!important}
+.schedule-list-event.calendar-event.priority-low{border-left-color:var(--sage)!important}
+.schedule-list-event .check-button{width:15px;height:15px;min-width:15px;padding:0;display:grid;place-items:center;font-size:9px;line-height:1}
+.schedule-list-event .event-copy{gap:2px!important;overflow:hidden}
+.schedule-list-event .event-copy>strong{font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.schedule-list-event .event-copy>span,.schedule-list-event .event-copy>small{font-size:9px;line-height:1.4;color:#85847b}
+.schedule-list-event .event-copy>.category-tag{align-self:flex-start;margin-top:2px;padding:2px 6px;font-size:8px!important}
+.schedule-list-event .mission-list{display:grid;gap:3px;margin-top:3px;padding-left:2px}
+.schedule-list-event .mission-item{gap:6px;font-size:9px;line-height:1.35;color:#71736b}
+.schedule-list-event .mission-item input{width:12px;height:12px;margin:0}
+.schedule-list-event .edit-button,.schedule-list-event .delete-button{position:static;padding:3px;border-radius:5px;color:#85847b;font-size:12px;line-height:1}
+.schedule-list-event .edit-button:hover,.schedule-list-event .delete-button:hover{background:#f1efe8}
+.schedule-list-event.is-cancelled{opacity:.7}
+.schedule-group-empty{color:#98968d;font-size:10px}
+@media(max-width:900px){.category-groups{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){.schedule-group{padding:9px}.schedule-list-event.event-item{grid-template-columns:15px minmax(0,1fr) auto auto;gap:6px;padding:7px}.schedule-group-heading{margin-bottom:7px}}
