@@ -154,12 +154,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-ui);letter-
 @media(max-width:1100px){.category-groups,.date-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.category-groups,.date-groups{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:520px){.schedule-group{padding:9px}.schedule-list-event.event-item{grid-template-columns:15px minmax(0,1fr) auto auto;gap:6px;padding:7px}.schedule-group-heading{margin-bottom:7px}}
-/* Keep calendar event cards white to match the grouped list view. */
-.calendar-event.priority-high,.calendar-event.priority-medium,.calendar-event.priority-low{background:#fffefa!important}
-.calendar-event.priority-high{border-left-color:var(--clay)!important}
-.calendar-event.priority-medium{border-left-color:var(--gold)!important}
-.calendar-event.priority-low{border-left-color:var(--sage)!important}
-.month-event,.month-event.priority-high,.month-event.priority-medium,.month-event.priority-low{background:#fffefa!important}
-.month-event.priority-high{border-color:var(--clay)!important}
-.month-event.priority-medium{border-color:var(--gold)!important}
-.month-event.priority-low{border-color:var(--sage)!important}
+/* Use a clean white canvas behind the colored calendar events. */
+.schedule-card{background:#fff!important}
+.calendar-grid{background:#fff!important}
+.calendar-day-track{background:linear-gradient(to bottom,transparent 59px,#eee9df 60px)!important;background-size:100% 60px!important}
+.calendar-day-track.is-today{background-color:#fff!important}
