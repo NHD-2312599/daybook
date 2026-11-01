@@ -161,5 +161,3 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-ui);letter-
 .calendar-grid{background:#fff!important}
 .calendar-day-track{background:linear-gradient(to bottom,transparent 59px,#eee9df 60px)!important;background-size:100% 60px!important}
 .calendar-day-track.is-today{background-color:#fff!important}
-
-.profile-avatar{object-fit:cover}.dialog-logo{display:block;flex:none;width:34px;height:34px;border-radius:11px;object-fit:cover;box-shadow:0 2px 8px #17170f12}
