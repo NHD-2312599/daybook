@@ -807,7 +807,9 @@ document.querySelector('[data-save-schedule-image]')?.addEventListener('click', 
     const timeMatch = timeText.match(/(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/);
     if (!copy || !title || !timeMatch) return;
     const categoryKey = [...item.classList].find((name) => name.startsWith('category-'))?.slice(9) || 'other';
+    const priorityKey = [...item.classList].find((name) => name.startsWith('priority-'))?.slice(9) || 'medium';
     const status = item.dataset.occurrenceStatus || 'planned';
+    if (status === 'cancelled' || status === 'rescheduled') return;
     const missionChecks = [...item.querySelectorAll('.mission-check')];
     const event = {
       title,
@@ -815,9 +817,8 @@ document.querySelector('[data-save-schedule-image]')?.addEventListener('click', 
       endTime: timeMatch[2],
       overnight: timeMatch[2] <= timeMatch[1],
       categoryKey,
+      priorityKey,
       category: copy.querySelector('.category-tag')?.textContent.trim() || categoryNames[categoryKey] || 'Khác',
-      status,
-      statusNote: item.dataset.statusNote || '',
       missionTotal: missionChecks.length,
       missionDone: missionChecks.filter((checkbox) => checkbox.checked).length,
     };
@@ -857,12 +858,9 @@ document.querySelector('[data-save-schedule-image]')?.addEventListener('click', 
   canvas.height = headerHeight + rowHeights.reduce((sum, value) => sum + value, 0) + gap * weekRows.length + margin;
 
   const palette = {
-    work: { bg: '#eaf8fa', edge: '#76c8c7', text: '#39797e' },
-    personal: { bg: '#fff7d9', edge: '#e0c557', text: '#896d28' },
-    health: { bg: '#eaf7ef', edge: '#7fc4a1', text: '#47795d' },
-    study: { bg: '#fff0ef', edge: '#e89a9b', text: '#9b595d' },
-    group_meeting: { bg: '#f1edff', edge: '#a48cdb', text: '#6b5897' },
-    other: { bg: '#f0f1ec', edge: '#9ba69b', text: '#59675e' },
+    high: { bg: '#f6dfd8', edge: '#c77968', text: '#814f44' },
+    medium: { bg: '#f8eacb', edge: '#d2a64f', text: '#78602b' },
+    low: { bg: '#dfede2', edge: '#72967c', text: '#4d6b55' },
   };
   const roundRect = (x, y, w, h, radius, fill, stroke) => {
     ctx.beginPath();
@@ -923,9 +921,8 @@ document.querySelector('[data-save-schedule-image]')?.addEventListener('click', 
       const shown = dayEvents.slice(0, visibleLimit);
       shown.forEach((event, eventIndex) => {
         const cy = y + 32 + eventIndex * (cardHeight + 5);
-        const colors = palette[event.categoryKey] || palette.other;
-        const statusColor = event.status === 'cancelled' ? '#b65c59' : event.status === 'rescheduled' ? '#98772d' : colors.text;
-        roundRect(x + 7, cy, colWidth - 14, cardHeight, 8, event.status === 'cancelled' ? '#f6eeea' : colors.bg, null);
+        const colors = palette[event.priorityKey] || palette.medium;
+        roundRect(x + 7, cy, colWidth - 14, cardHeight, 8, colors.bg, null);
         ctx.fillStyle = colors.edge;
         roundRect(x + 7, cy, 4, cardHeight, [8, 0, 0, 8], colors.edge, null);
         ctx.fillStyle = '#66736f';
@@ -935,11 +932,10 @@ document.querySelector('[data-save-schedule-image]')?.addEventListener('click', 
         ctx.fillStyle = '#30414a';
         ctx.font = `600 ${compactGrid ? 10 : 13}px "Segoe UI", sans-serif`;
         drawWrapped(event.title, x + 18, cy + (compactGrid ? 28 : 36), colWidth - 34, compactGrid ? 12 : 15, 2);
-        ctx.fillStyle = statusColor;
+        ctx.fillStyle = colors.text;
         ctx.font = `600 ${compactGrid ? 8 : 10}px "Segoe UI", sans-serif`;
         const metaY = cy + (compactGrid ? 55 : 63);
-        const meta = event.status === 'cancelled' ? 'Đã hủy' : event.status === 'rescheduled' ? 'Đổi lịch' : event.category;
-        ctx.fillText(meta, x + 18, metaY);
+        ctx.fillText(event.category, x + 18, metaY);
         if (event.missionTotal) {
           const missionText = `${event.missionDone}/${event.missionTotal} mission`;
           ctx.textAlign = 'right';
